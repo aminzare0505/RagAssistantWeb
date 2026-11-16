@@ -1,6 +1,6 @@
 # Frontend Architecture — RAG Assistant
 
-> **Status:** Foundation, the application layout/design system, and the **authentication module** (login, logout, session restore, protected routes) are implemented; chat, documents, data sources, and settings are not. The React application lives at `frontend/rag-assistant-ui/` and contains the responsive shell, navigation, header, light/dark themes, a bilingual (Persian/English) RTL-LTR shell, reusable UI primitives, an HTTP client with envelope/error handling, a single-flight refresh session, and tests. No product feature beyond authentication exists yet.
+> **Status:** Foundation, the application layout/design system, **authentication**, and a **mock-data chat UI preview** are implemented; documents, data sources, and settings are not. The React application lives at `frontend/rag-assistant-ui/` and contains the responsive shell, navigation, header, light/dark themes, a bilingual (Persian/English) RTL-LTR shell, reusable UI primitives, an HTTP client with envelope/error handling, a single-flight refresh session, a responsive chat interface, and tests. The chat page makes **no network calls**: its conversations, messages, and sources are isolated mock data, and real chat integration remains blocked on the backend contract.
 >
 > **Backend baseline:** `RagAssistantApi` (ASP.NET Core 8), source-inspected on 2026-11-16 at commit `afd92ec` with an uncommitted working tree. `dotnet build RagAssistant.Api.slnx` now **succeeds** (0 errors), but the API cannot start: it fails its own JWT option validation (`Authentication:Jwt:SecretKey` is shorter than 32 characters), and no documented port is listening. All auth contracts are **source-verified, not runtime-verified**.
 >
@@ -86,8 +86,8 @@ Violating these rules is an architecture defect, not a code-style issue.
 | Validation | Zod | 4.6.7 | Runtime validation of inputs **and** environment config |
 | Form resolvers | `@hookform/resolvers` | 5.2.2 | Required peer pairing for Zod 4 + React Hook Form |
 | Icons | Lucide React | current 0.x | Consistent, tree-shakeable icon set |
-| Markdown | React Markdown | 10.x | Safe-by-default markdown (no raw HTML) |
-| Code highlighting | rehype-highlight + highlight.js | current | Needed for "code syntax highlighting"; lighter than a full highlighter renderer |
+| Markdown | React Markdown | 10.1.0 | Installed for the chat preview; raw HTML disabled |
+| Code highlighting | rehype-highlight + highlight.js | 7.0.2 (highlight.js 11.11.2) | Installed for the chat preview |
 | Unit/integration tests | Vitest | major that supports the chosen Vite major | Shares Vite transform pipeline |
 | Component tests | React Testing Library | 16.x | Behavior-oriented tests |
 | E2E tests | Playwright | current 1.5x | Cross-browser, reliable auto-waiting |
@@ -146,7 +146,7 @@ Do not add these without a written decision in this document and user approval:
 - **RTL 16**: `@testing-library/dom` must be installed explicitly as a peer.
 - **Vitest and Vite**: current Vitest versions treat `vite` as a **required peer dependency**, not a bundled one, so a mismatched Vite copy breaks resolution. Install a Vitest major whose peer range includes the chosen Vite major and verify with `npm ls vite vitest`.
 - **shadcn/ui is not a dependency**: components are copied into `src/components/ui`. Treat them as owned source.
-- **Deferred feature libraries**: Zustand, React Markdown, and rehype-highlight are approved but intentionally not installed until their first real use. React Hook Form and `@hookform/resolvers` are installed because the login form now uses them. Do not install other deferred libraries speculatively.
+- **Deferred feature libraries**: Zustand is approved but intentionally not installed until a real cross-route need exists. React Hook Form, `@hookform/resolvers`, React Markdown, and rehype-highlight are installed because the login form and chat preview now use them. The chat Markdown pipeline does **not** include `remark-gfm`, `rehype-raw`, or an HTML sanitizer; do not add them speculatively.
 
 > **Verification (2026-11-15):** Dependencies are installed and pinned in `package-lock.json`: React 19.3.1, Vite 8.3.8, Vitest 5.1.0, Tailwind 4.3.5, TypeScript 5.9.3, React Router 7.18.5. `npm ls vite vitest` resolves a single `vite@8.3.8` for `vitest@5.1.0`. ESLint is held at 9.39.5 because the documented baseline and `eslint-plugin-jsx-a11y`'s peer range require it; npm marks that release unsupported upstream, and moving to ESLint 10 requires a plugin compatibility review, so it is deferred. Do not claim a different peer graph without re-running `npm ls`.
 >
@@ -173,7 +173,7 @@ RagAssistantWebApp/
       │  ├─ components/
       │  │  ├─ ui/              # button, input, card, dialog, dropdown-menu, tooltip, spinner, skeleton
       │  │  └─ shared/          # empty-state, error-state, feature-placeholder, theme-menu, language-menu
-      │  ├─ features/           # vertical feature modules (auth implemented; four placeholders)
+      │  ├─ features/           # vertical feature modules (auth implemented; chat preview; three placeholders)
       │  ├─ layouts/            # app-shell, sidebar, header, mobile-navigation, navigation-list
       │  ├─ pages/              # home, design-system, route-loading, not-found, route-error
       │  ├─ theme/              # ThemeProvider, useTheme
@@ -189,7 +189,7 @@ RagAssistantWebApp/
       └─ package.json
 ```
 
-Planned additions (not created yet): per-feature `api/`, `components/`, `hooks/`, `schemas/`, and `types.ts` slices for chat/documents/data-sources/settings, `e2e/` with Playwright, and self-hosted font assets. The `auth` feature is implemented with `components/`, `routes/`, `types.ts`, and its `index.ts`; `src/api/` and `src/auth/` now exist. Each remaining feature contains only `routes/` and its `index.ts`; create the remaining slices when the first real use exists. `src/pages/design-system-page.tsx` is a static reference and is not a product route.
+Planned additions (not created yet): per-feature `api/`, `schemas/`, and `types.ts` slices for documents/data-sources/settings, real chat `api/` and `schemas/` slices, `e2e/` with Playwright, and self-hosted font assets. The `auth` feature is implemented with `components/`, `routes/`, `types.ts`, and its `index.ts`. The `chat` feature currently has `components/`, `hooks/`, `lib/`, `mock/`, `routes/`, `types.ts`, and `index.ts`; it has **no** `api/` or `schemas/` slice because no chat contract exists. Each remaining feature contains only `routes/` and its `index.ts`. `src/pages/design-system-page.tsx` is a static reference and is not a product route.
 
 Authentication layering:
 
@@ -197,6 +197,14 @@ Authentication layering:
 - `src/auth/` holds session primitives shared by transport and feature code: the in-memory access token + `sessionStorage` refresh token, JWT display decoding, and the session-expired event. It must not import from `src/features`.
 - `src/features/auth/` owns the auth endpoints (`auth-api.ts`), the React `AuthProvider`/`useAuth`, the login route, the account menu, and the `RequireAuth` guard.
 - `AuthLayout` mounts `AuthProvider` around both the public `/login` route and the protected subtree, so the state survives navigation between them.
+
+Chat preview layering (temporary until a contract exists):
+
+- `src/features/chat/mock/` is the only source of conversations, messages, replies, and sources. It is deliberately isolated, imports nothing from the API layer, and has a header comment instructing removal when the contract lands.
+- `src/features/chat/hooks/use-chat-preview.ts` owns preview UI state: active conversation, search, send/stop/regenerate, and a local `setTimeout` that simulates a reply so generating and stop states are exercisable. It must never become the place where a real request is added; real chat gets TanStack Query hooks and an `api/` slice.
+- `src/features/chat/lib/` holds feature-local, non-React helpers (clipboard, locale-aware formatting).
+- Components receive data and callbacks as props; only the page composes the hook. No component calls `fetch`.
+- The page renders a persistent preview banner. Do not remove it while the mock layer exists.
 
 Rules:
 
@@ -229,6 +237,8 @@ src/features/chat/
 
 Features: `auth`, `chat`, `documents`, `data-sources`, `settings`.
 
+The tree above is the target shape for a contract-backed feature. The implemented `chat` slice intentionally omits `api/` and `schemas/` and adds `mock/` and `lib/` while it is a preview; do not treat the presence of `mock/` as a production pattern.
+
 Boundary rules:
 
 1. Cross-feature imports go through `features/<name>/index.ts` only.
@@ -259,6 +269,7 @@ Rules:
 - Layout components (`AppShell`, `Sidebar`, `Header`, `MobileNavigation`) contain no business logic.
 - Shared, domain-agnostic components live in `components/shared`: `EmptyState` (icon, title, description, action), `ErrorState` (`role="alert"` panel), `FeaturePlaceholder`, `ThemeMenu`, and `LanguageMenu`.
 - Vendored primitives live in `components/ui`: `Button`, `Input`, `Card`, `Dialog` (center and start-side sheet), `DropdownMenu`, `Tooltip`, `Spinner`, and `Skeleton`. They are composed, never forked per screen.
+- Chat feature components (`features/chat/components/`) split into: `ConversationHistory` (new/search/select/delete), `ChatMessageList` (log container, auto-scroll, generating indicator), `ChatMessageItem` (roles, timestamps, actions), `MarkdownMessage` + `CodeBlock` + `CopyButton`, `MessageSources`, `ChatComposer`, and `ChatEmptyState`. They are composed by `ChatPage`; only that page reads the preview hook.
 - `pages/design-system-page.tsx` demonstrates every primitive in both themes and directions. It is the visual acceptance surface for the design system, not product functionality.
 - Split a component when it mixes concerns (data + form + presentation) or exceeds ~200 lines. Line count is a signal, not a target.
 - Prefer composition (`children`, render props) over boolean-prop configuration explosions.
@@ -276,7 +287,7 @@ React Router 7 in library mode, with `createBrowserRouter` and `RouterProvider`.
 |---|---|---|
 | `/login` | public | Credential form; shows a session-expired notice when a stored session could not be restored |
 | `/` | authenticated | Landing page; temporary, not the final product home |
-| `/chat` | authenticated | Honest "not implemented" placeholder |
+| `/chat` | authenticated | Chat UI **preview** backed by isolated mock data; no network calls |
 | `/documents` | authenticated | Honest "not implemented" placeholder |
 | `/data-sources` | authenticated | Honest "not implemented" placeholder |
 | `/settings` | authenticated | Honest "not implemented" placeholder |
@@ -301,8 +312,8 @@ AuthLayout (AuthProvider)
 |---|---|---|---|
 | `/` | public | Redirect to `/chat` | — |
 | `/login` | public | Sign in | Endpoint exists in source; API cannot start (JWT secret config) |
-| `/chat` | authenticated | New conversation | Blocked (see §13) |
-| `/chat/:conversationId` | authenticated | Existing conversation | Blocked |
+| `/chat` | authenticated | New conversation | Preview UI exists (mock data); contract blocked |
+| `/chat/:conversationId` | authenticated | Existing conversation | Blocked (no conversation contract) |
 | `/documents` | authenticated | Document list and upload | Blocked |
 | `/documents/:documentId` | authenticated | Document details and status | Blocked |
 | `/data-sources` | authenticated | Data source list | Blocked |
@@ -342,6 +353,7 @@ Rules:
 | URL state | React Router search params | `returnTo` on `/login`; list filters, pagination, active source (future) |
 | Form state | React Hook Form + Zod resolver | login (implemented); change password and source configuration (future) |
 | Ephemeral UI state | Local `useState` | dialog open, composer text, copied state |
+| Chat preview state | Feature hook local state (`useChatPreview`) | seeded mock conversations, search, active id, generating flag; **temporary**, replaced by TanStack Query when a contract exists |
 | Cross-route client state | Zustand, only if it is needed in 3+ distant places and is not server state | sidebar collapse preference, onboarding dismissal |
 
 Hard rules:
@@ -406,7 +418,8 @@ Component  →  feature data hook  →  TanStack Query  →  feature api module 
 - Components never import `httpClient` directly.
 - Feature API modules own endpoint paths, request shapes, and response parsing for that feature.
 - `src/api/http-client.ts` owns base URL, headers, cancellation, envelope parsing, and error normalization.
-- Implemented today: `src/api/http-client.ts`, `src/api/api-error.ts`, `src/api/types/auth.ts`, and the `src/features/auth` module (login page, `AuthProvider`, `RequireAuth`, `AuthLayout`, `UserMenu`, `auth-api` request helpers, `safe-return-to`). No other feature calls the API yet.
+- Implemented today: `src/api/http-client.ts`, `src/api/api-error.ts`, `src/api/types/auth.ts`, and the `src/features/auth` module (login page, `AuthProvider`, `RequireAuth`, `AuthLayout`, `UserMenu`, `auth-api` request helpers, `safe-return-to`). No other feature calls the API.
+- The chat preview calls **nothing**. Its data comes from `features/chat/mock/` and a local timer; there are no query keys, mutations, or DTOs for chat. When the backend contract is verified, add a real `api/` slice and query keys, and delete the mock module.
 - Query keys come from a typed key factory per feature:
 
 ```ts
@@ -499,14 +512,14 @@ Any module marked **Blocked** may have UI scaffolding only if it is clearly non-
 | Module | Backend evidence (2026-11-16) | Frontend status |
 |---|---|---|
 | Authentication | 5 routes in `AuthController`; backend solution builds (`dotnet build` 0 errors) but the API cannot start until `Authentication:Jwt:SecretKey` is ≥ 32 chars; contracts are source-verified only | **Implemented** (login, session restore, logout, route guards, account menu); runtime verification against a live API still blocked |
-| Chat | `ChatController` exists but is syntactically invalid (duplicate actions, line 31); `ChatAboutFileAsync` always throws (`int.Parse("e")`); no streaming; no persistence endpoints | **Blocked** beyond static UI |
-| Conversation management | Tables `chat.ChatConversations`, `ChatMessages`, `ChatMessageSources` exist; no controller | **Blocked** |
-| Document upload | `IIndexingService`/`IRagService.UploadFile` exist internally; no HTTP endpoint | **Blocked** |
+| Chat | `ChatController` exists in an uncommitted, unverified working tree; no streaming or persistence endpoints | **UI preview implemented** with isolated mock data; no API call. Real integration **blocked** |
+| Conversation management | Tables `chat.ChatConversations`, `ChatMessages`, `ChatMessageSources` exist; no controller | **UI preview only**: history/search/delete operate on mock state. Blocked |
+| Document upload | `IIndexingService`/`IRagService.UploadFile` exist internally; no HTTP endpoint | **Blocked**; composer attachment control is disabled with an explanation |
 | Document listing/details/deletion | `doc.Document` table exists; no controller | **Blocked** |
 | Data sources | `SiteUserDataSource` only; no schema-browsing endpoint | **Blocked** |
 | Settings | Configuration is server-side `appsettings`; no endpoints | **Blocked** |
-| Streaming / stop generation | No SSE, `IAsyncEnumerable`, SignalR, or hub registration | **Blocked** |
-| Citations | `Conversation` carries only `messageType` + `text`; sources are not returned | **Blocked** |
+| Streaming / stop generation | No SSE, `IAsyncEnumerable`, SignalR, or hub registration | **Blocked**; the stop control only cancels the local mock reply timer |
+| Citations | `Conversation` carries only `messageType` + `text`; sources are not returned | **Blocked**; source cards display mock fields only |
 
 Blocked modules are not an excuse to fake data in production code. Prototype data may exist only behind a development flag that cannot ship, and only with explicit approval.
 
@@ -530,6 +543,7 @@ Blocked modules are not an excuse to fake data in production code. Prototype dat
 | AD-12 | No streaming implementation until a backend contract exists | Decided | UI may show non-streaming behavior only |
 | AD-13 | Radix-backed vendored primitives; no animation or i18n library | Decided | Accessibility and focus management come from Radix; motion is two CSS keyframes |
 | AD-14 | Persist only theme and language in `localStorage` | Decided | No sensitive data in browser storage; preferences apply before first paint |
+| AD-15 | Chat ships as a UI preview with isolated mock data and a visible banner until the backend contract is verified | Decided, implemented | Exercises the interface honestly without inventing endpoints; `mock/` must be deleted when real chat lands |
 
 ---
 

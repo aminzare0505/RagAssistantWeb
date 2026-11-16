@@ -1,6 +1,6 @@
 # Frontend API Integration — RAG Assistant
 
-> **Status:** Contract reference for the React application. The HTTP transport and the **authentication** flow are implemented and consume only the endpoints in §4. No other endpoint is called.
+> **Status:** Contract reference for the React application. The HTTP transport and the **authentication** flow are implemented and consume only the endpoints in §4. The chat page is a UI preview backed by isolated mock data and calls no endpoint; no other endpoint is called.
 > **Rule:** Only contracts verified in backend source may be documented as endpoints. Nothing here may be invented.
 > **Backend baseline:** `RagAssistantApi` at `afd92ec` with an uncommitted working tree, source-inspected 2026-11-16. `dotnet build RagAssistant.Api.slnx` **succeeds** (0 errors), but the API cannot start: `Authentication:Jwt:SecretKey` is shorter than 32 characters. No endpoint has been executed, so every contract below is **source-verified, not runtime-verified**.
 > **Last updated:** 2026-11-16
@@ -410,7 +410,7 @@ export interface Conversation {
 }
 ```
 
-Frontend status: **blocked**. Do not create query hooks against `/api/Chat/Chat` and do not present chat as functional. A chat UI may be built only as internal scaffolding that is clearly disabled, and only after the architecture review.
+Frontend status: **blocked for integration**. Do not create query hooks against `/api/Chat/Chat` and do not present chat as functional. An approved **UI preview** now exists at `/chat` using isolated mock data (`src/features/chat/mock/`) with a visible banner; it makes no HTTP request and must not be wired to a guessed contract. Replace the mock layer only after this contract is verified.
 
 Missing for a real chat product:
 

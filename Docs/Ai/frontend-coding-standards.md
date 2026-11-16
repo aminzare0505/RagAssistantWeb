@@ -1,8 +1,8 @@
 # Frontend Coding Standards — RAG Assistant
 
-> **Status:** Standards for the React application foundation and design system at `frontend/rag-assistant-ui/`. Product features are not implemented.
+> **Status:** Standards for the React application at `frontend/rag-assistant-ui/`. The foundation, design system, authentication, and a mock-data chat UI preview are implemented; other product features are not.
 > **Applies to:** all code under `frontend/rag-assistant-ui/src/` and (later) `frontend/rag-assistant-ui/e2e/`.
-> **Last updated:** 2026-11-15
+> **Last updated:** 2026-11-16
 >
 > Related: [Architecture](./frontend-architecture.md) · [Security](./frontend-security-standards.md) · [Testing](./frontend-testing-standards.md) · [UI/UX](./frontend-ui-ux-guidelines.md) · [API integration](./frontend-api-integration.md)
 
@@ -204,6 +204,17 @@ export function useConversation(conversationId: string) {
 - Neither hook writes to `document` during render; they apply side effects in an effect or in the setter, before notifying React.
 - Components read copy through `t`; importing `fa`/`en` directly is limited to providers, the page-title resolver, and the error boundary (which renders outside the providers).
 
+### 5.1 Chat preview patterns (implemented 2026-11-16)
+
+- Preview data lives only in `src/features/chat/mock/`. It is module-scoped, imported only by `use-chat-preview`, and must be deleted when a real contract exists. Do not import mock data in tests as if it were API coverage, and do not let it leak into another feature.
+- `useChatPreview` owns conversation/message/search/generating state and returns a named object. It schedules a single `setTimeout` for the mock reply, stores it in a ref, and clears it on unmount and on stop. It is not a model for real request handling.
+- Presentation components are props-driven: `ChatPage` is the only consumer of the hook. `ChatMessageList`, `ChatMessageItem`, `ChatComposer`, `ConversationHistory`, `MarkdownMessage`, `CodeBlock`, `MessageSources`, and `CopyButton` receive data/callbacks and never call `fetch` or the preview hook.
+- `MarkdownMessage` keeps its React Markdown `components` map at module scope so the override identities stay stable across renders. Overrides must render text as text; see the security standards for the link/image/code rules.
+- Auto-scroll is an effect, not render logic: it scrolls to the end and observes the list content with `ResizeObserver` so late layout changes keep the newest message visible. Clean up the observer.
+- Locale-aware formatting (`Intl.DateTimeFormat`/`NumberFormat`) lives in `src/features/chat/lib/format.ts`, caches formatters by locale, and degrades to an empty string for invalid dates. It does not format inside render loops without caching.
+- `src/features/chat/lib/clipboard.ts` is the only clipboard access; it returns a boolean and never throws, and the caller renders success or failure.
+- `useId` wires the composer label and the attachment hint; icon-only actions get an accessible name from the catalog, not a literal string.
+
 ---
 
 ## 6. Separation of Concerns
@@ -221,7 +232,7 @@ export function useConversation(conversationId: string) {
 
 Additional rules:
 
-- UI formatting (numbers, dates, file sizes) lives in `src/lib/format.ts` with tests.
+- UI formatting (numbers, dates) lives in tested helpers: `src/lib/` for cross-feature helpers, or a feature `lib/` slice when it is feature-specific (the chat preview uses `src/features/chat/lib/format.ts`). Promote a helper to `src/lib/` only when a second feature needs it.
 - Authorization decisions are never made in the client. Permission checks only decide whether to render a hint.
 - Do not reimplement backend validation as the source of truth. Client-side Zod schemas improve UX; the backend response remains authoritative.
 - Error translation (status/envelope → Persian message) lives in one place.
@@ -351,6 +362,7 @@ Implemented reference form (2026-11-16): `src/features/auth/routes/login-page.ts
 | Importing `fa`/`en` in components instead of `useLanguage().t` | Bypasses the active locale |
 | `index` as React key for dynamic lists | Incorrect reconciliation |
 | Suppressing ESLint/TS rules without justification | Hidden defects |
+| Spreading mock data beyond a feature's `mock/` folder or hiding it as if it were API data | Fake integration, accidental production data |
 | `window.location.href` for internal navigation | Full reload, loses state |
 | Reading `document.cookie` or `localStorage` for auth | Unsupported token model |
 

@@ -1,6 +1,6 @@
 # Frontend Testing Standards — RAG Assistant
 
-> **Status:** Standards for the React application. **48 tests across 9 files pass** (shell/routing, theme and language preferences, design-system primitives, HTTP client transport and refresh, auth provider lifecycle, login page, protected routing, JWT display decoding, safe `returnTo`). No product-feature tests exist beyond authentication.
+> **Status:** Standards for the React application. **68 tests across 11 files pass** (shell/routing, theme and language preferences, design-system primitives, HTTP client transport and refresh, auth provider lifecycle, login page, protected routing, JWT display decoding, safe `returnTo`, chat page behavior, and Markdown/code safety). The chat tests exercise UI behavior against isolated mock data; no real chat contract exists.
 > **Scope:** `RagAssistantWebApp` only. Backend tests (`RagAssistant.Tests`, xUnit) are owned by `RagAssistantApi` and must not be changed from this repository.
 > **Last updated:** 2026-11-16
 >
@@ -87,10 +87,10 @@ afterEach(() => {
 
 Add global stubs only for APIs genuinely unavailable in jsdom (for example, `matchMedia`, `ResizeObserver`, `scrollTo`). Each stub must be minimal and documented. Do not stub `fetch` globally here.
 
-Implemented stubs in `src/test/setup.ts` (required by the Radix primitives and the theme provider):
+Implemented stubs in `src/test/setup.ts` (required by the Radix primitives, the theme provider, and chat auto-scroll):
 
 - `window.matchMedia` returning a non-matching `MediaQueryList` with `addEventListener`/`removeEventListener` (the theme provider subscribes when the theme is `system`).
-- `ResizeObserver` with no-op `observe`/`unobserve`/`disconnect` (popover and dialog positioning).
+- `ResizeObserver` with no-op `observe`/`unobserve`/`disconnect` (popover and dialog positioning, and the chat message list's auto-scroll sync).
 - `Element.prototype.scrollIntoView`, `hasPointerCapture`, `releasePointerCapture`, and `setPointerCapture` (menu pointer handling and focus movement).
 
 `afterEach` must also reset global state that providers mutate outside React: call `cleanup()`, `localStorage.clear()`, remove the `dark` class, and restore `<html lang="fa" dir="rtl">`. Without this, preferences leak between tests.
@@ -179,6 +179,43 @@ Required shell scenarios (implemented in `src/app/preferences.test.tsx` and `src
 - Persisted preferences are applied on load before assertions.
 - Mobile navigation sheet opens, navigates, and closes on Escape; focus returns to the trigger (Radix behavior).
 - Every interactive primitive is asserted by role/name, not by class name.
+
+### 5.5 Chat preview coverage (implemented 2026-11-16)
+
+`src/features/chat/chat-page.test.tsx` (16 tests) renders the real app at `/chat` with a seeded session and asserts user-visible behavior:
+
+- Shell and content: page heading, conversation header, timestamps, and role labels.
+- Markdown and highlighted code, using a stable row query rather than raw class assertions for layout.
+- Message copy success (`navigator.clipboard.writeText` stubbed with `vi.fn()` **after** `userEvent.setup()`, because user-event installs its own clipboard stub) and the failure path when `navigator.clipboard` is absent.
+- Code-block copy (copies the code text, not the whole message).
+- Regenerate replaces the last assistant reply with the next mock variant; old text is removed.
+- Source expansion reveals the snippet, sets `aria-expanded`, and the toggle is keyboard reachable.
+- Enter sends and clears the composer, the Stop control appears, and the mock reply arrives after `MOCK_REPLY_DELAY_MS`.
+- Shift+Enter inserts a newline instead of sending.
+- Stop leaves the message count unchanged after the timer would have fired.
+- New chat + suggestion send, search filtering with a no-match state, delete with confirmation, and deleting all conversations reaching the no-conversation state.
+- Mobile history sheet opens, selects a conversation, and closes.
+- English/LTR and dark theme seeded through persisted preferences.
+- `afterEach` deletes `navigator.clipboard` so stubs do not leak.
+
+`src/features/chat/components/markdown-message.test.tsx` (4 tests) covers:
+
+- Formatted text and lists.
+- Only absolute `http(s)` links become anchors with `target`/`rel`; relative and `javascript:` links render as text.
+- Images and raw HTML never render (`img` and injected attributes are null; alt text is shown).
+- Fenced code renders `.chat-code pre`, applies `.hljs-keyword`, shows the language label, and exposes the code copy button.
+
+Mock data is not a fixture of the transport; no test asserts a chat request because none exists. Do not add a fake `fetch` expectation for chat and call it integration coverage.
+
+### 5.6 Browser verification for visual UI
+
+Component tests do not prove layout, RTL, or theme behavior. When a task changes visual layout:
+
+- Drive a real browser at 1440, 768, and 360 px minimum, in `fa` and `en`, in light and dark.
+- Assert structural facts programmatically: `documentElement.lang/dir`, `.dark`, list/sidebar visibility, scroll-to-bottom, and `scrollWidth <= clientWidth` (no page-level horizontal overflow).
+- Capture screenshots under `Docs/Ai/reviews/assets/<date>-<task>/` and reference them in the review report.
+- If the in-app browser has no visible surface (0×0 viewport / hidden visibility), use headless Chrome over CDP and say so; do not claim screenshots that were not produced.
+- A mocked session restore (init script seeding `sessionStorage` and answering `/api/auth/refresh`) is acceptable for reaching a guarded page, but it is not backend verification.
 
 ---
 
@@ -274,14 +311,21 @@ Status legend: **✔ implemented** (covered by an executed test), **— not appl
 
 ### 8.3 Chat UI
 
-- Markdown renders as formatted text, not raw HTML.
-- Raw HTML in model output is not executed or rendered as elements.
-- Code blocks render with a language label and copy control.
-- Copy action writes the message text and shows feedback.
-- Streaming output updates accessible regions without stealing focus (when a streaming contract exists).
-- Stop control aborts the request (when a streaming contract exists).
-- Citation UI renders only fields supplied by the API; it never fabricates page numbers (see API doc).
-- Long messages wrap without horizontal page overflow; code blocks scroll internally.
+Status legend: **✔ implemented** (UI preview with mock data), **— not applicable until a contract exists**.
+
+- ✔ Markdown renders as formatted text, not raw HTML.
+- ✔ Raw HTML in model output is not executed or rendered as elements.
+- ✔ Code blocks render with a language label and copy control.
+- ✔ Copy action writes the intended text (message or code) and shows success/failure feedback.
+- ✔ Conversation history supports new chat, search, selection, and delete with confirmation (mock state).
+- ✔ Sources expand to show only the fields provided; the preview never invents values beyond its mock fixtures, and missing page/score values are tolerated.
+- ✔ Long messages wrap without horizontal page overflow; code blocks scroll internally.
+- ✔ Enter/Shift+Enter behavior and IME composition are covered.
+- ✔ Stop cancels the local simulated reply (UI state only).
+- ✔ Empty conversation, no-conversation, and search-empty states are covered.
+- — Streaming output updates accessible regions without stealing focus (no streaming contract).
+- — Stop aborts a real request (no request exists).
+- — Citation fields come from the API (mock only today).
 
 ### 8.4 Documents
 

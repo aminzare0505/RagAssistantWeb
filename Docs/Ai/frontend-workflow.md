@@ -1,7 +1,7 @@
 # Frontend Development Workflow — RAG Assistant
 
 > **Status:** Mandatory process for work in `RagAssistantWebApp`.
-> **Last updated:** 2026-11-15
+> **Last updated:** 2026-11-16
 >
 > Related: [Architecture](./frontend-architecture.md) · [Coding standards](./frontend-coding-standards.md) · [Security](./frontend-security-standards.md) · [Testing](./frontend-testing-standards.md) · [API integration](./frontend-api-integration.md) · [Project context](../../PROJECT_CONTEXT.md)
 
@@ -11,7 +11,7 @@
 
 This workflow keeps frontend work correct, reviewable, and honest about what was actually verified. It preserves the backend project's rules while adding frontend-specific gates.
 
-The application foundation, the layout/design system, and the **authentication flow** now exist at `frontend/rag-assistant-ui/`; product features do not. Any further feature work requires its own approval and a verified backend contract. See §12 for what the completed tasks did and did not include.
+The application foundation, the layout/design system, the **authentication flow**, and a **mock-data chat UI preview** now exist at `frontend/rag-assistant-ui/`; other product features do not. Any further feature work requires its own approval and a verified backend contract. See §12 for what the completed tasks did and did not include.
 
 ---
 
@@ -328,6 +328,33 @@ Deliberately not done:
 - Screenshots: the browser tool could not capture them (viewport reported 0×0); interactions were verified through scripted DOM events instead.
 
 Known issue carried forward (not part of this task): feature placeholder pages still hardcode Persian copy, so English mode shows Persian feature text.
+
+---
+
+## 12.3 Chat Interface Record
+
+Task 4 was approved and implemented on 2026-11-16. It built the chat interface as a UI preview; no backend was modified and no chat contract was invented.
+
+Completed:
+
+1. `react-markdown@10.1.0` + `rehype-highlight@7.0.2` installed (`remark-gfm` deliberately not installed).
+2. Isolated mock layer: seeded conversations, rotating mock replies (prose, TypeScript code, summary), timestamps, and sources; a 600 ms local timer exercises generating/stop.
+3. Preview state hook `useChatPreview`: active conversation, search, send/stop/regenerate, new chat, delete, filter.
+4. Components: conversation history with search and delete confirmation, message list with auto-scroll and generating indicator, message rows with roles/timestamps/actions, Markdown renderer with restricted links and blocked images, highlighted code blocks with copy, copy button with feedback, expandable sources, composer with Enter/Shift+Enter, IME guard, stop, and a disabled attachment control, plus an empty state with suggestions.
+5. Responsive page: desktop history sidebar, mobile history sheet, `dvh`-safe layout, preview banner in `fa` and `en`, light/dark tokens for code highlighting.
+6. Chat catalog added to both i18n files.
+7. Tests expanded from 48 to 68 across 11 files (16 page tests, 4 Markdown/security tests).
+8. Gates executed: `typecheck`, `lint`, `test` (68 passed), `build` (succeeded).
+9. Browser verification with headless Chrome over CDP at 1440/768/360 px in `fa`/`en` and light/dark; screenshots stored under `Docs/Ai/reviews/assets/2026-11-16-chat/`.
+10. Documentation updated: architecture, UI/UX, testing, security, coding standards, workflow, `AGENTS.md`, `PROJECT_CONTEXT.md`, changelog, and a review report.
+
+Deliberately not done:
+
+- Any HTTP call, endpoint, DTO, query key, persistence, streaming, or real citation payload. The backend chat contract is unverified and the API cannot start.
+- Real regenerate, stop, or attachment behavior; regenerate rotates mocks, stop cancels a local timer, and attachment is disabled.
+- Markdown tables/GFM (`remark-gfm` not approved/installed).
+- Retranslating already-seeded mock message content when the language changes.
+- Playwright/E2E and live-API verification (no runnable backend).
 
 ---
 

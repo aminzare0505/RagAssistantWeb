@@ -1,8 +1,8 @@
 # Frontend UI/UX Guidelines — RAG Assistant
 
-> **Status:** Design direction for the React application, with the shell and design system implemented. The responsive layout, sidebar/header navigation, light/dark/system themes, `fa`/`en` direction switching, reusable primitives, and a static `/design-system` reference page exist. No product UI exists yet.
+> **Status:** Design direction for the React application, with the shell, design system, authentication, and a **chat UI preview** implemented. The responsive layout, sidebar/header navigation, light/dark/system themes, `fa`/`en` direction switching, reusable primitives, and a static `/design-system` reference page exist. The chat page implements history, messages, Markdown/code, sources, and the composer against **isolated mock data**; no other product UI exists, and no chat content is real.
 > **Audience:** frontend engineers, designers, and review agents.
-> **Last updated:** 2026-11-15
+> **Last updated:** 2026-11-16
 >
 > Related: [Architecture](./frontend-architecture.md) · [Coding standards](./frontend-coding-standards.md) · [Security](./frontend-security-standards.md) · [API integration](./frontend-api-integration.md)
 
@@ -100,6 +100,7 @@ Rules:
 - Primary font: **Vazirmatn**, self-hosted (woff2), weights 400/500/600/700. No third-party font CDN. The font files are not bundled yet; the stack currently falls back to `Segoe UI`/`Tahoma` until they are added.
 - Fallback stack: `Vazirmatn, "Segoe UI", Tahoma, system-ui, sans-serif`.
 - Code font: `ui-monospace, "Cascadia Code", "Consolas", monospace`.
+- Code highlighting uses dedicated semantic tokens (`--code-keyword`, `--code-string`, `--code-number`, `--code-function`, `--code-type`, `--code-variable`) defined for both themes; `.hljs-*` classes map to them in `src/styles/index.css`.
 - Direction: body `dir="rtl"`; code and identifiers `dir="ltr"`.
 
 Suggested scale:
@@ -173,8 +174,8 @@ Layout:
 - **Desktop (≥ lg / 1024 px, implemented):** fixed 288 px (`w-72`) start-side sidebar with brand, navigation, and environment footer; sticky 64 px header with page title and theme/language menus; content column offset by `lg:ps-72` and capped at `max-w-6xl`.
 - **Tablet (md, implemented):** sidebar is hidden; the header menu button opens the navigation in a start-side sheet with focus trap; content stays single-column.
 - **Mobile (< md, implemented):** single column; navigation opens as a full-height start-side sheet (4/5 width, max 288 px); header buttons and sheet controls have 44×44 px touch targets; content uses `dvh`-safe full height.
-- **Future (not implemented):** icon rail, right-side sources panel, composer pinned above the safe area.
-- Use `dvh` (not `vh`) for full-height chat on mobile browsers with dynamic toolbars.
+- **Future (not implemented):** icon rail and a persistent right-side sources panel. The chat composer is already pinned, and sources expand inline per message.
+- Chat uses `dvh`-based heights (`h-[calc(100dvh-…)]`) so mobile browser toolbars do not clip the composer.
 - Respect safe-area insets (`env(safe-area-inset-bottom)`).
 - Tables become stacked definition lists or horizontally scrollable containers; never cause page-level horizontal scroll.
 - Touch targets ≥ 44×44 px on mobile, ≥ 24×24 px on desktop.
@@ -216,7 +217,7 @@ Mandatory:
 - Lists and pages: **skeletons** that match the final layout; avoid full-page spinners.
 - Lazy route chunks: the router's `hydrateFallbackElement` renders a centered, labeled spinner (`role="status"`), not a blank screen.
 - Buttons: inline spinner plus disabled state; keep the label or use an accessible "loading" label.
-- Chat: typing indicator at the assistant position; when streaming is unavailable, show a clear "generating" state.
+- Chat: implemented as a spinner row at the assistant position with a labeled Stop control in the composer while the mock reply is pending. There is no token streaming; when a real streaming contract exists, follow the stop/abort rules in §8.3.
 - Never show a fake progress percentage. Use indeterminate progress unless the API reports progress.
 - Skeleton count should approximate the expected content and not shift layout excessively.
 
@@ -224,12 +225,12 @@ Mandatory:
 
 Every list and panel needs a purposeful empty state: icon, one-sentence explanation, and one primary action.
 
-Examples:
+Examples (chat empty states are implemented with these roles):
 
 | Surface | Copy (Persian) | Action |
 |---|---|---|
 | No conversations | «هنوز گفتگویی ندارید. یک گفتگوی جدید شروع کنید.» | «گفتگوی جدید» |
-| No messages | «سؤال خود را درباره اسناد بپرسید.» | focus composer |
+| No messages | «سؤال خود را درباره اسناد بپرسید.» | suggestion buttons / focus composer |
 | No documents | «هنوز سندی بارگذاری نشده است.» | «بارگذاری سند» |
 | No sources for a message | «منبعی برای این پاسخ ثبت نشده است.» | — |
 | No data sources | «منبع داده‌ای پیکربندی نشده است.» | «افزودن منبع» |
@@ -264,71 +265,61 @@ Do not use empty states to imply functionality that is not implemented.
 
 ## 8. Chat Interface Guidelines
 
-### 8.1 Layout
+> **Implemented as a preview (2026-11-16).** §8.1–8.7 exist as UI except real backend integration: conversations, messages, replies, and sources are mock, replies are simulated after 600 ms, and a visible preview banner says so. Do not remove the banner or describe the page as a working chat.
 
-- Conversation view: scrollable message list; sticky composer at the bottom; optional sources panel.
-- Message max width ~48rem for readability; full-width code blocks inside.
-- User message: aligned to the end, distinct surface, no avatar needed.
-- Assistant message: aligned to the start, plain content surface, product avatar optional.
-- Group consecutive messages from the same role; show timestamps on hover/focus or in a compact meta row.
-- System messages are visually subdued and not styled as user content.
+### 8.1 Layout (implemented)
 
-### 8.2 Message rendering
+- Desktop (`lg` and up): a `Card` split into a 288 px (`w-72`) history sidebar at the start edge and the message pane.
+- Below `lg`: the sidebar is hidden and the same history opens in a start-side sheet from a header button; the pane uses the full width.
+- The message list scrolls independently; the composer stays mounted at the bottom of the pane, including in empty states.
+- Page height uses `dvh` calculations and the list is the only scroll area, so the composer is never pushed off-screen.
+- Assistant messages align start with an avatar; user messages align end in a primary-colored bubble. Role labels, timestamps, and a "mock reply" badge are always visible, not hover-only.
+- Auto-scroll follows the newest message using a `ResizeObserver` on the list content. A "new content below" affordance is not implemented because nothing is streamed.
 
-- Markdown: headings, lists, tables, blockquotes, links, inline code, fenced code.
-- Code blocks: language label when available, copy button, horizontal scroll, `dir="ltr"`, monospace.
-- Tables: scrollable container; do not break the page width.
-- Links: safe protocols, external-link indication, `noopener noreferrer`.
-- Long words/URLs: `overflow-wrap: anywhere` where appropriate.
-- Do not render raw HTML.
-- Preserve whitespace for plain text that is not markdown.
+### 8.2 Message rendering (implemented)
 
-### 8.3 Streaming and generation
+- Markdown headings, lists, blockquotes, links, inline code, and fenced code render with `react-markdown` + `rehype-highlight`.
+- **GFM tables, task lists, and strikethrough do not render**: `remark-gfm` is not installed. Do not claim table support; add the plugin only with approval and tests.
+- Code blocks show a language label when present, a copy control, internal scrolling (`max-h-80`), `dir="ltr"`, and monospace text.
+- Links: only `http(s)` URLs become anchors, opened with `target="_blank"` and `rel="noopener noreferrer"`. Relative and `javascript:` links render as plain text.
+- Images are never loaded; a placeholder shows the alt text instead.
+- Raw HTML is never rendered. `h1` from model output is demoted to `h3` so it cannot compete with page structure.
+- Long words and URLs wrap; code scrolls internally and the page never scrolls horizontally.
 
-- While generating:
-  - Show an assistant placeholder immediately.
-  - Render tokens incrementally only when a streaming contract exists.
-  - Keep the "stop" control reachable and clearly labeled («توقف تولید»).
-  - Do not auto-scroll if the user has scrolled up; show a "new content below" affordance.
-  - Auto-scroll when the user is at the bottom, with a small threshold.
-- Stop:
-  - Abort the client request immediately.
-  - Mark the message as stopped (not failed) and keep partial content if the backend supports it.
-  - Never pretend the server stopped generating if only the client disconnected.
-- Regenerate:
-  - Offer on assistant messages.
-  - Confirm if it will discard the current answer.
-  - Disable while another generation is running.
-- Copy:
-  - Copy the message text only; show a brief success state.
-- Errors:
-  - Show a retry action on the failed assistant turn.
-  - Do not insert an error as an assistant message in the transcript history.
+### 8.3 Actions and generation (implemented, mock-backed)
 
-### 8.4 Composer
+- Assistant rows expose copy and regenerate. Copy writes only the message text and reports «کپی شد» / «کپی انجام نشد» through an `aria-live` region; a denied clipboard is shown honestly.
+- Regenerate rotates the mock reply variant and is disabled while generating. It is **not** real regeneration.
+- Generating shows a spinner row at the assistant position and replaces Send with a labeled Stop button. Stop cancels only the local timer.
+- Streaming is not implemented; text never arrives incrementally. Do not simulate tokens.
+- There is no auto-scroll opt-out yet.
 
-- Auto-growing textarea with a sensible max height; scroll inside after that.
-- Enter sends; Shift+Enter inserts a newline. Handle IME composition correctly.
-- Disable send when empty, when generating (unless the backend supports queueing), or when no source is selected if the API requires one.
-- Preserve the draft per conversation in memory; a page reload may lose it (state that behavior).
-- Show character/token limits only if the backend documents them.
-- Attachment control only when an upload endpoint exists and the feature is real.
+### 8.4 Composer (implemented)
 
-### 8.5 Conversation management
+- Auto-growing textarea starting at one row with a max height (`max-h-40`); it scrolls internally beyond that.
+- Enter sends, Shift+Enter inserts a newline, and Enter is ignored during IME composition.
+- Send is disabled when the input is empty or while generating; Stop replaces it during generation.
+- The attachment button is disabled with an accessible explanation that file upload has no endpoint. Do not enable it until a real upload contract exists.
+- Drafts live in component state only; nothing is persisted across reloads.
 
-- Sidebar list: title, last-updated time, active state, overflow menu (rename, delete).
-- Rename and delete require a real endpoint; until then, do not ship the controls as working features.
-- Deleting the active conversation navigates to `/chat`.
-- Infinite scroll or pagination only with a documented API.
+### 8.5 Conversation management (implemented on mock state)
 
-### 8.6 Sources and citations
+- History provides a full-width new-chat button, search, conversation rows (truncated title, short date, active state), and a delete control with a destructive confirmation dialog.
+- Delete and new chat operate on in-memory mock state only; reloading restores the seeded conversations.
+- Search matches title and message text case-insensitively and has its own empty state.
+- Rename and overflow menus are not implemented. Do not add controls that imply a backend operation.
 
-- Render citations only from API-provided fields: document name, page number, chunk index, score, and a document id if provided.
-- Never invent page numbers or scores. The backend currently omits page numbers in search results, so the UI must tolerate missing values.
-- Citation chip format: file name + page when present; score in the details, not the chip.
-- Clicking a citation opens the sources panel with the full retrieved text and metadata; a link to the document detail page exists only when that page is implemented.
-- Distinguish "no sources returned" from "sources not supported yet" in development notes, not in user-facing copy.
-- If the answer is not grounded, the UI must not imply citations exist.
+### 8.6 Sources (implemented on mock data)
+
+- Source cards are labeled «منابع (نمایشی)» and expand per source to show document name, page and score when present, and the retrieved snippet.
+- The UI tolerates missing values: `page`, `score`, and `snippet` may be null.
+- These are mock values. Never present them as citations from a real retrieval until the API supplies them.
+
+### 8.7 Preview honesty
+
+- A persistent banner contains the preview badge, a notice that replies are mock and not saved, and a "mock reply" label in the conversation header.
+- The only simulated delay is a short local timer used to exercise generating and stop; it is not fake progress and shows no percentage.
+- Empty and no-conversation states state that preview data is not sent to a server.
 
 ---
 

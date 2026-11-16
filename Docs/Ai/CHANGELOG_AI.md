@@ -1,5 +1,56 @@
 # CHANGELOG_AI
 
+## 2026-11-16 — Implement chat interface preview
+
+**Scope:** Frontend-only (Task 4). Built the Chat page UI on the existing shell/design system with full conversation-history, message, composer, and source interactions. **No backend was modified, no endpoint or DTO was invented, and the page makes no network calls.** All conversations, messages, replies, and sources come from isolated mock data under `src/features/chat/mock/`, and a visible preview banner states this in both languages. Real chat remains blocked on the backend contract.
+
+**Changed files (all created unless marked _modified_):**
+
+- `frontend/rag-assistant-ui/package.json`, `package-lock.json` — _modified_: added `react-markdown@^10.1.0` and `rehype-highlight@^7.0.2` (highlight.js 11.11.2). `remark-gfm` was not added.
+- `frontend/rag-assistant-ui/src/features/chat/types.ts` — preview view models (`ChatConversation`, `ChatMessage`, `ChatSource`), explicitly not wire DTOs.
+- `frontend/rag-assistant-ui/src/features/chat/mock/mock-data.ts` — three seeded conversations, three rotating mock replies (prose/sources, TypeScript code block, summary), `createEmptyConversation`, `createUserMessage`, `createAssistantMessage`, `MOCK_REPLY_DELAY_MS`; the header comment says to delete the module when a contract exists.
+- `frontend/rag-assistant-ui/src/features/chat/hooks/use-chat-preview.ts` — conversation store, search filter, active selection, new chat, delete, send with simulated reply timer, stop, regenerate (rotates mock variants); timer cleared on unmount.
+- `frontend/rag-assistant-ui/src/features/chat/lib/clipboard.ts` — `copyText` capability check; returns `false` instead of throwing.
+- `frontend/rag-assistant-ui/src/features/chat/lib/format.ts` — cached `Intl` date/number formatters and score formatting per locale.
+- `frontend/rag-assistant-ui/src/features/chat/routes/chat-page.tsx` — _modified_: replaced the placeholder with the responsive two-pane layout, preview banner, mobile history sheet, conversation header, empty/generating states, and always-mounted composer.
+- `frontend/rag-assistant-ui/src/features/chat/components/conversation-history.tsx` — new chat, search, list with active state and dates, delete button, and destructive confirmation dialog.
+- `frontend/rag-assistant-ui/src/features/chat/components/chat-message-list.tsx` — `role="log"` container, auto-scroll via `ResizeObserver`, generating indicator.
+- `frontend/rag-assistant-ui/src/features/chat/components/chat-message-item.tsx` — user/assistant rows, avatars, timestamps, Markdown, sources, copy and regenerate actions.
+- `frontend/rag-assistant-ui/src/features/chat/components/markdown-message.tsx` — React Markdown with `rehype-highlight`; module-scope component overrides restrict links to `http(s)`, replace images with a placeholder, route `pre` to `CodeBlock`, and demote `h1` to `h3`.
+- `frontend/rag-assistant-ui/src/features/chat/components/code-block.tsx` — language label, LTR scrollable pre, copy button using DOM text.
+- `frontend/rag-assistant-ui/src/features/chat/components/copy-button.tsx` — idle/copied/failed feedback with an `aria-live` region.
+- `frontend/rag-assistant-ui/src/features/chat/components/message-sources.tsx` — expandable source list with document name, optional page/score, and retrieved snippet.
+- `frontend/rag-assistant-ui/src/features/chat/components/chat-composer.tsx` — auto-growing textarea, Enter/Shift+Enter with IME guard, send, stop while generating, disabled attachment with explanation.
+- `frontend/rag-assistant-ui/src/features/chat/components/chat-empty-state.tsx` — empty conversation copy and suggestion prompts.
+- `frontend/rag-assistant-ui/src/i18n/fa.ts`, `src/i18n/en.ts` — _modified_: full chat catalog (preview notice, history/search/delete, roles, actions, sources, composer, empty states).
+- `frontend/rag-assistant-ui/src/styles/index.css` — _modified_: code-highlight tokens for both themes, `.chat-markdown` typography/spacing, `.chat-code` reset, and `.hljs-*` mappings to semantic tokens.
+- `frontend/rag-assistant-ui/src/features/chat/components/markdown-message.test.tsx` — 4 Markdown/security/code tests.
+- `frontend/rag-assistant-ui/src/features/chat/chat-page.test.tsx` — 16 page-level tests (history, search, delete, send, stop, regenerate, copy, sources, mobile sheet, English/dark).
+- `AGENTS.md`, `PROJECT_CONTEXT.md` — _modified_: status, verified results, limitations, evidence.
+- `Docs/Ai/frontend-architecture.md`, `frontend-ui-ux-guidelines.md`, `frontend-testing-standards.md`, `frontend-security-standards.md`, `frontend-coding-standards.md`, `frontend-workflow.md` — _modified_: chat preview architecture, UI patterns, test patterns, Markdown/clipboard safety, and a Task 4 record.
+- `Docs/Ai/reviews/2026-11-16-chat-ui.md` — review report.
+- `Docs/Ai/reviews/assets/2026-11-16-chat/*.png` — ten verification screenshots.
+
+**Summary:**
+Implemented the complete chat interface as a truthful UI preview. Desktop shows a 288 px conversation sidebar beside the message pane; below `lg` the same history opens in a start-side sheet. The message area renders user and assistant rows with timestamps, Markdown, syntax-highlighted LTR code blocks with copy, per-message copy and regenerate, and expandable sources. The composer supports multiline input, Enter/Shift+Enter, a generating state with stop, and a disabled attachment control that explains the missing endpoint. Empty, generating, search-empty, and no-conversation states are covered in both languages and themes. Mock replies are simulated locally after 600 ms so the generating/stop UI can be exercised; nothing is sent to or stored on a server.
+
+**Typecheck:** `npm run typecheck` (`tsc -b`) — passed, no errors.
+**Lint:** `npm run lint` (`eslint .`) — passed, no findings.
+**Tests:** `npm run test` (`vitest run`) — **68/68 passed in 11 files** (48 pre-existing + 20 new: 16 chat page + 4 Markdown).
+**Build:** `npm run build` (`tsc -b && vite build`) — succeeded; CSS 39.77 kB, main JS 606.40 kB (190.21 kB gzip), lazy chat chunk 313.11 kB (98.07 kB gzip). Vite warns that the main chunk exceeds 500 kB; no failure.
+**Browser verification:** headless Chrome over CDP at 1440×900, 768×900, and 360×740 in Persian/English and light/dark, using a mocked session-restore `fetch` and seeded `sessionStorage`. Verified sidebar/sheet behavior, Markdown and highlighted code, source expansion, Enter-to-send with the stop state, auto-scroll to the newest message, and no page-level horizontal overflow. Screenshots are under `Docs/Ai/reviews/assets/2026-11-16-chat/`. The in-app browser had no visible surface (0×0 viewport, hidden visibility), so it was used only for structural checks.
+**E2E:** Not executed. Playwright is not installed, and no chat backend contract exists.
+**Independent review:** Not performed. No reviewer agent was available; the report is a self-review by the implementing agent.
+
+**Known issues / follow-ups:**
+- Real chat integration is blocked: no verified chat, conversation, citation, or streaming contract. The mock module must be removed, not extended, when one exists.
+- Markdown tables/GFM are unsupported because `remark-gfm` is not installed; add it only with approval and tests.
+- Switching language does not retranslate already-seeded mock conversation content.
+- Regenerate rotates mock replies; stop cancels a local timer; attachment is disabled. None of these call a server or represent real backend behavior.
+- Auto-scroll always follows the newest message; there is no "new content below" affordance yet because nothing streams.
+- Main JS chunk is 606.40 kB (190.21 kB gzip); the advisory remains.
+- Pre-existing defect: remaining placeholder pages (documents, data sources, settings, home content) still hardcode Persian copy in English mode.
+
 ## 2026-11-16 — Implement authentication UI and integration
 
 **Scope:** Frontend-only (Task 3). Added the HTTP transport, session primitives, `AuthProvider`, login page, route guards, account menu, and 33 new tests, using only the source-verified auth endpoints. The backend repository was not modified. No register page was built because the backend has no registration endpoint. Chat, documents, data sources, settings, streaming, and citations remain blocked.

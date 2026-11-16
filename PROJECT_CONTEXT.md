@@ -2,7 +2,7 @@
 
 > **Purpose:** Give any AI agent or developer the verified state of this repository and its backend dependency without re-exploring everything.
 > **Generated / verified:** 2026-11-16
-> **This repository:** documentation plus the **frontend foundation, layout/design system, and authentication** at `frontend/rag-assistant-ui/`. No other product feature (chat, documents, data sources, settings) is implemented.
+> **This repository:** documentation plus the **frontend foundation, layout/design system, authentication, and a mock-data chat UI preview** at `frontend/rag-assistant-ui/`. No product feature is connected to a backend except authentication; the chat page is a preview and documents, data sources, and settings are not implemented.
 > **Backend baseline:** `../RagAssistantApi` at commit `afd92ec` (`Chat Method`), branch `main`. **The working tree is dirty** at inspection on 2026-11-16; the backend was read only and not modified from this repository.
 > **Backend build:** `dotnet build RagAssistant.Api.slnx` → **succeeds, 0 errors**. **Runtime is blocked:** `dotnet run` throws `Authentication:Jwt:SecretKey must be at least 32 characters` before listening.
 > **Instruction precedence:** `AGENTS.md` and `Docs/Ai/*` govern work. This file is a map; read the source before changing it.
@@ -35,23 +35,25 @@ Documentation created on 2026-11-15:
 | `Docs/Ai/frontend-workflow.md` | Created |
 | `Docs/Ai/CHANGELOG_AI.md` | Created |
 
-Frontend foundation, layout/design system, and authentication (2026-11-15 / 2026-11-16, verified by executed commands — see §1.1):
+Frontend foundation, layout/design system, authentication, and chat UI preview (2026-11-15 / 2026-11-16, verified by executed commands — see §1.1):
 
 | Area | Present |
 |---|---|
 | Build | `package.json`, `package-lock.json`, `vite.config.ts`, three `tsconfig*.json`, `index.html` with no-flash theme/language bootstrap |
 | Quality | `eslint.config.js`, `.prettierrc.json`, `.prettierignore`, `.gitignore`, `.env.example` |
 | App shell | `src/main.tsx`, `src/app/*` (router, providers, navigation, page title, error boundary), `src/layouts/*` (app shell, sidebar, header, mobile navigation sheet, navigation list) |
-| Pages/routes | Login, home, static `/design-system` reference, route-loading fallback, 404, route error, and four honest placeholder feature routes |
-| Design system | Semantic tokens (including sidebar tokens), light/dark themes, Radix-backed primitives in `src/components/ui`, shared `EmptyState`/`ErrorState` |
+| Pages/routes | Login, home, chat preview, static `/design-system` reference, route-loading fallback, 404, route error, and three honest placeholder feature routes |
+| Design system | Semantic tokens (including sidebar and code-highlight tokens), light/dark themes, Radix-backed primitives in `src/components/ui`, shared `EmptyState`/`ErrorState` |
 | Internationalization | Typed `fa`/`en` catalogs, `LanguageProvider`, `<html lang/dir>` switching, Radix `DirectionProvider` |
 | Transport | `src/api/http-client.ts` (bearer, timeout, abort, envelope parsing, single-flight refresh), `src/api/api-error.ts`, `src/api/types/*` |
 | Session | `src/auth/token-store.ts` (access in memory, refresh in `sessionStorage`), `src/auth/jwt.ts` (display-only decoding), `src/auth/session-events.ts` |
 | Auth feature | `src/features/auth/*`: `AuthProvider`, `RequireAuth`, `AuthLayout`, login page + schema + error mapping, safe `returnTo`, account `UserMenu` |
-| Tests | Vitest + RTL harness with Radix jsdom stubs, session seeding, fetch stub helpers; 48 tests in 9 files |
-| Not present | `e2e/`, Playwright, TanStack devtools, Zustand, React Markdown, self-hosted font files, change-password/logout-all UI |
+| Chat preview | `src/features/chat/*`: page, conversation history/search/delete dialog, message list, Markdown + highlighted code, copy/regenerate actions, expandable mock sources, composer (Enter/Shift+Enter, stop, disabled attachment), empty/generating states, mock data and preview hook; **no HTTP calls** |
+| Markdown | `react-markdown@10.1.0` with `rehype-highlight@7.0.2`; raw HTML disabled; `remark-gfm` is **not** installed, so Markdown tables/GFM are unsupported |
+| Tests | Vitest + RTL harness with Radix jsdom stubs, session seeding, fetch stub helpers; 68 tests in 11 files |
+| Not present | `e2e/`, Playwright, TanStack devtools, Zustand, `remark-gfm`, self-hosted font files, change-password/logout-all UI, real chat/conversation API integration |
 
-**Do not claim any product feature beyond authentication is implemented.** The application renders a responsive shell, navigation, a design-system reference, and placeholder pages; the only backend calls are `login`, `refresh`, and `logout`.
+**Do not claim any product feature beyond authentication is integrated, or that chat works.** The application renders a responsive shell, navigation, a design-system reference, placeholder pages, and a chat UI preview backed by isolated mock data. The only backend calls are `login`, `refresh`, and `logout`; the chat page makes none.
 
 ### 1.1 Verified commands and results (latest run 2026-11-16)
 
@@ -62,17 +64,19 @@ Run from `frontend/rag-assistant-ui/` with portable Node 24.22.3 / npm 11.19.1:
 | `npm install` (foundation) | Succeeded; 373 packages added; `package-lock.json` written |
 | `npm install` after layout dependencies | Succeeded; Radix dialog/direction/dropdown-menu/slot/tooltip added |
 | `npm install react-hook-form @hookform/resolvers` | Succeeded; `react-hook-form@7.66.0`, `@hookform/resolvers@5.2.2` (Zod 4 compatible) |
+| `npm install react-markdown rehype-highlight` | Succeeded; `react-markdown@10.1.0`, `rehype-highlight@7.0.2` (highlight.js 11.11.2) |
 | `npm run typecheck` (`tsc -b`) | Passed, no errors (latest run 2026-11-16) |
 | `npm run lint` (`eslint .`) | Passed, no findings (latest run 2026-11-16) |
-| `npm run test` (`vitest run`) | **48/48 tests passed in 9 files** (latest run 2026-11-16) |
-| `npm run build` (`tsc -b && vite build`) | Succeeded; CSS 33.40 kB, main JS 646.91 kB (203.37 kB gzip); one chunk >500 kB advisory |
+| `npm run test` (`vitest run`) | **68/68 tests passed in 11 files** (latest run 2026-11-16) |
+| `npm run build` (`tsc -b && vite build`) | Succeeded; CSS 39.77 kB, main JS 606.40 kB (190.21 kB gzip), chat route chunk 313.11 kB (98.07 kB gzip); one chunk >500 kB advisory |
 | Browser check (2026-11-15 layout task) | 360, 768, and 1440 px verified in Persian/English and light/dark; no console errors; no horizontal overflow |
 | Browser check (2026-11-16 auth task) | Scripted DOM interaction against the dev server with a mocked `fetch`: guard redirect, empty-field validation, invalid credentials, successful login + `returnTo`, session restore (real 502 failure path and a stubbed success path), logout, account menu, theme and language switches. **Screenshots not captured** — the browser tool reported an unavailable viewport (0×0) |
+| Browser check (2026-11-16 chat task) | Headless Chrome over CDP at 1440×900, 768×900, and 360×740 in `fa`/`en` and light/dark. Verified sidebar visibility, mobile history sheet, Markdown/code highlighting, source expansion, Enter-to-send with generating/stop states, and no page-level horizontal overflow; screenshots stored under `Docs/Ai/reviews/assets/2026-11-16-chat/` |
 | `npm audit --omit=dev` | **0 production vulnerabilities** |
 | `npm audit` (full tree) | 7 moderate, all dev-only (`typescript-eslint` → `minimatch`, GHSA-g3hv-75wg-m249); not auto-fixed because the fix downgrades tooling |
 | `npm run e2e` | Not available; Playwright is not installed and no runnable backend exists |
 
-Screenshots from the layout task: `Docs/Ai/reviews/assets/2026-11-15-layout/`. No screenshots exist for the authentication task.
+Screenshots: layout task under `Docs/Ai/reviews/assets/2026-11-15-layout/`; chat task under `Docs/Ai/reviews/assets/2026-11-16-chat/`. No screenshots exist for the authentication task.
 
 ### 1.2 Folder-name note
 
@@ -209,22 +213,22 @@ Foundation, layout/design system, and authentication exist at `frontend/rag-assi
 | Forms | React Hook Form 7.x | 7.66.0 | Implemented for login |
 | Validation | Zod 4.x + `@hookform/resolvers` | 4.6.7 / 5.2.2 | Implemented (env schema, login schema, token schema) |
 | Icons | Lucide React | 1.73.0 | Implemented |
-| Markdown | React Markdown 10.x (no raw HTML) | — | Deferred until chat exists |
-| Code highlighting | rehype-highlight | — | Deferred until chat exists |
+| Markdown | React Markdown 10.x (no raw HTML) | 10.1.0 | Implemented in the chat preview |
+| Code highlighting | rehype-highlight | 7.0.2 (highlight.js 11.11.2) | Implemented in the chat preview |
 | Unit tests | Vitest + jsdom | 5.1.0 / 31.0.1 | Implemented |
 | Component tests | React Testing Library 16.x | 16.3.3 | Implemented |
 | E2E | Playwright | — | Deferred until an integration path exists |
 | Package manager | npm | 11.19.1 | Implemented |
 | Language/locale | Persian-first, bilingual `fa`/`en` shell | — | Implemented (runtime direction switching) |
 
-Versions are pinned in `frontend/rag-assistant-ui/package-lock.json` with caret ranges in `package.json`. A single `vite@8.3.8` satisfies Vitest's peer requirement (Vitest 5.x requires Vite as a peer); ESLint is held at 9.39.5 line. Deferred libraries are intentionally not installed to avoid unused dependencies; they must be added only when a feature needs them, under the approved stack.
+Versions are pinned in `frontend/rag-assistant-ui/package-lock.json` with caret ranges in `package.json`. A single `vite@8.3.8` satisfies Vitest's peer requirement (Vitest 5.x requires Vite as a peer); ESLint is held at 9.39.5 line. Libraries not yet needed (for example Zustand, Playwright, `remark-gfm`) remain intentionally uninstalled; add them only when a real use exists and they are part of the approved stack.
 
 Node: the toolchain was resolved on 2026-11-15 with a portable Node 24.22.3 LTS / npm 11.19.1 install at `%LOCALAPPDATA%\nodejs-portable\node-v24.22.3-win-x64`. A helper at `%LOCALAPPDATA%\nodejs-portable\env.sh` prepends it to `PATH` for the current shell. The **system `PATH` was not modified**, so `node`/`npm` may still be absent from a fresh shell; source that helper first.
 
 ### 4.2 Structural decisions
 
 - Independent SPA, separately deployable; no shared code with the backend.
-- Feature-based modules: `auth` (implemented), `chat`, `documents`, `data-sources`, `settings` (placeholders).
+- Feature-based modules: `auth` (implemented), `chat` (UI preview with mock data), `documents`, `data-sources`, `settings` (placeholders).
 - API access only through a typed client layer; no `fetch` in components. Implemented in `src/api/http-client.ts`.
 - Access token in memory; refresh token in `sessionStorage` as an interim measure. Implemented in `src/auth/token-store.ts`.
 - Single-flight refresh, retried once on 401; refresh itself is never retried. Implemented.
@@ -242,7 +246,7 @@ Node: the toolchain was resolved on 2026-11-15 with a portable Node 24.22.3 LTS 
 | Module | Plan | Current status |
 |---|---|---|
 | Authentication | Login, refresh, logout, protected routes; logout-all and change password when UI exists | **Implemented**: login, session restore, logout, guards, account menu. No register page (no backend endpoint). Runtime verification blocked by backend startup |
-| Chat | Conversations, messages, markdown, code, citations, stop, regenerate | **Blocked** |
+| Chat | Conversations, messages, markdown, code, citations, stop, regenerate | **UI preview implemented** with isolated mock data (history/search/delete, Markdown + highlighted code, copy/regenerate, expandable sources, composer, stop, empty/generating states). No network calls; real integration **blocked** |
 | Documents | Upload, progress, status, list, delete, details | **Blocked** |
 | Data sources | Config, schema, permissions, source selection | **Blocked** |
 | Settings | Model, retrieval, embedding, preferences | **Blocked** (client-only preferences excepted) |
@@ -310,11 +314,15 @@ Node: the toolchain was resolved on 2026-11-15 with a portable Node 24.22.3 LTS 
 | CORS policy | Not implemented |
 | Rate limiting | Not implemented |
 | Local Node/npm toolchain | Resolved locally on 2026-11-15 via portable Node 24.22.3 / npm 11.19.1 (not on system `PATH`); behaves correctly for `npm install`, gates, and build |
-| Production bundle size | Main JS chunk 646.91 kB (203.37 kB gzip) triggers Vite's >500 kB advisory; acceptable now, revisit when feature code grows |
+| Production bundle size | Main JS chunk 606.40 kB (190.21 kB gzip) plus a lazy chat chunk of 313.11 kB (98.07 kB gzip); Vite still warns about the main chunk (>500 kB). Acceptable now; split further when more feature code lands |
 | Self-hosted font | Not bundled; the Vazirmatn stack falls back to `Segoe UI`/`Tahoma` |
 | Real API/browser integration | Unverified; the backend cannot start |
 | Authentication screenshots | Not produced; the browser tool reported an unavailable viewport |
-| English feature copy | **Known defect:** feature placeholder pages hardcode Persian strings, so English mode shows Persian feature text |
+| Chat backend integration | **Not implemented by design**: no HTTP call, no DTO, no persistence. All data is mock and replies are simulated locally with a timer |
+| Chat Markdown tables | Not supported: `remark-gfm` is not installed, so GFM tables/strikethrough/task lists do not render |
+| Chat message relocalization | Mock messages are generated in the language active when the conversation was seeded; switching language afterwards does not retranslate existing message content |
+| Real regenerate/stop/attachment | Regenerate rotates mock replies; stop cancels the local timer; attachment is disabled because no upload endpoint exists |
+| English feature copy | **Known defect:** placeholder pages (documents, data sources, settings, home content) hardcode Persian strings, so English mode shows Persian text. The chat preview itself is catalog-driven in both languages |
 
 ---
 
@@ -363,12 +371,13 @@ Node: the toolchain was resolved on 2026-11-15 with a portable Node 24.22.3 LTS 
 4. **Backend:** add conversation, document, data source, and settings endpoints with authorization and ownership checks.
 5. **Backend:** add `/me` or another verified identity endpoint.
 6. **Both:** confirm the deployment model (same-origin proxy vs CORS).
-7. **Frontend (done):** foundation, layout/design system, and authentication against source-verified contracts.
+7. **Frontend (done):** foundation, layout/design system, authentication against source-verified contracts, and the chat UI preview with isolated mock data.
 8. **Frontend (needs approval):** run the authentication flow against a live backend once it starts, then add Playwright and the first E2E smoke path.
 9. **Frontend:** add Vazirmatn as a self-hosted asset (licence-compatible) and remove the font fallback.
-10. **Frontend:** split the main bundle once feature code lands (the 646 kB chunk advisory is the only build warning).
-11. **Frontend:** fix the English feature copy defect (placeholder pages import the `fa` catalog directly).
-12. **Frontend:** implement features in dependency order once their contracts are verified.
+10. **Frontend:** split the main bundle further once real feature data code lands (the 606 kB chunk advisory is the only build warning).
+11. **Frontend:** fix the English feature copy defect (remaining placeholder pages import the `fa` catalog directly).
+12. **Frontend:** replace the chat mock layer only after the backend chat/conversation/citation contracts are verified and approved; do not wire the preview UI to guesses.
+13. **Frontend:** implement remaining features in dependency order once their contracts are verified.
 
 Do not implement product features before the relevant contracts are verified and the step is approved. Do not treat mocks as integration verification.
 
@@ -388,7 +397,9 @@ Do not implement product features before the relevant contracts are verified and
 | Foundation review report | `Docs/Ai/reviews/2026-11-15-frontend-foundation.md` |
 | Layout/design-system review report | `Docs/Ai/reviews/2026-11-15-layout-design-system.md` |
 | Authentication review report | `Docs/Ai/reviews/2026-11-16-auth-ui-integration.md` |
+| Chat UI review report | `Docs/Ai/reviews/2026-11-16-chat-ui.md` |
 | Verification screenshots (layout) | `Docs/Ai/reviews/assets/2026-11-15-layout/` |
+| Verification screenshots (chat) | `Docs/Ai/reviews/assets/2026-11-16-chat/` |
 | Frontend app root | `frontend/rag-assistant-ui/` |
 | Frontend env validation | `frontend/rag-assistant-ui/src/lib/env.ts` |
 | Frontend route table | `frontend/rag-assistant-ui/src/app/router.tsx` |
@@ -400,6 +411,10 @@ Do not implement product features before the relevant contracts are verified and
 | Session expiry events | `frontend/rag-assistant-ui/src/auth/session-events.ts` |
 | Auth provider and guard | `frontend/rag-assistant-ui/src/features/auth/` |
 | Login page | `frontend/rag-assistant-ui/src/features/auth/routes/login-page.tsx` |
+| Chat preview page | `frontend/rag-assistant-ui/src/features/chat/routes/chat-page.tsx` |
+| Chat mock data (delete when a contract exists) | `frontend/rag-assistant-ui/src/features/chat/mock/mock-data.ts` |
+| Chat preview state hook | `frontend/rag-assistant-ui/src/features/chat/hooks/use-chat-preview.ts` |
+| Chat Markdown/code rendering | `frontend/rag-assistant-ui/src/features/chat/components/markdown-message.tsx`, `code-block.tsx` |
 | Shell and navigation | `frontend/rag-assistant-ui/src/layouts/` |
 | Theme provider | `frontend/rag-assistant-ui/src/theme/theme-provider.tsx` |
 | Language provider and catalogs | `frontend/rag-assistant-ui/src/i18n/` |

@@ -1,6 +1,6 @@
 # Frontend Security Standards — RAG Assistant
 
-> **Status:** Mandatory standards for the React application. The foundation, layout, design system, and the **authentication flow** exist: token storage, the HTTP client, login, session restore, logout, and route guards are implemented. No other feature performs network calls.
+> **Status:** Mandatory standards for the React application. The foundation, layout, design system, the **authentication flow**, and a **chat UI preview** exist: token storage, the HTTP client, login, session restore, logout, and route guards are implemented. The chat preview renders Markdown and user/model-style content but performs no network calls. No other feature performs network calls.
 > **Backend baseline:** own JWT implementation in `RagAssistantApi` at `afd92ec` plus an uncommitted working tree (source-inspected 2026-11-16). The solution builds, but the API cannot start until `Authentication:Jwt:SecretKey` is ≥ 32 characters, so no auth behavior is runtime-verified.
 > **Last updated:** 2026-11-16
 >
@@ -218,6 +218,15 @@ Implemented (2026-11-16):
   - If images are allowed, restrict to `https:` and use `referrerPolicy="no-referrer"`.
 - Code highlighting (`rehype-highlight`) operates on code text and produces safe elements. Do not pass model output through any HTML pipeline.
 
+Implemented Markdown pipeline (2026-11-16, `src/features/chat/components/markdown-message.tsx`):
+
+- `react-markdown` with only `rehype-highlight`; **no `rehype-raw`**, no sanitizer, no `dangerouslySetInnerHTML`.
+- The `a` override requires a `string` href matching `^https?://`; anything else (relative, `javascript:`, `data:`) renders as a `<span>` with no navigation. Accepted links get `target="_blank"` and `rel="noopener noreferrer"`.
+- The `img` override never creates an `<img>`: it renders a placeholder with the alt text, so remote images cannot leak the user's IP or referrer.
+- `pre` maps to the project `CodeBlock` (text copy only); `h1` maps to `h3` to avoid competing with page structure.
+- Highlight tokens are CSS variables, not inline styles. No external stylesheet or CDN is loaded.
+- GFM tables are unavailable because `remark-gfm` is not installed; that is a feature limitation, not a security control. If added later, it must keep raw HTML disabled.
+
 ### 7.2 DOM and HTML
 
 - No `innerHTML`, `outerHTML`, or `insertAdjacentHTML` with untrusted values.
@@ -299,6 +308,7 @@ The backend currently exposes **no upload endpoint**. When one exists:
 - Do not persist message content or retrieved sources in browser storage.
 - Do not put PII, tokens, or document text in URLs, titles, or `document.referrer`.
 - Clipboard actions are user-initiated. Copy buttons should copy only the intended message, not internal metadata.
+- Implemented clipboard behavior (2026-11-16): `src/features/chat/lib/clipboard.ts` checks that `navigator.clipboard.writeText` exists, writes only the visible message text or the code block's text content, and returns `false` instead of throwing when the API is unavailable or denied. The UI reports success and failure honestly. No content is retained after the write, and nothing is written automatically.
 - Avoid caching sensitive API responses in a service worker. No service worker is planned.
 - Show only the fields the API returns. Do not fabricate citations, scores, or page numbers.
 - Redact sensitive values from client logs. In production, client logging should be minimal and structured; no request/response bodies.
@@ -349,7 +359,8 @@ Run this checklist on every frontend change:
 - [ ] Logout clears tokens and query caches; password change clears the session.
 - [ ] New routes are guarded and still tolerate `401`/`403` from the backend.
 - [ ] No `dangerouslySetInnerHTML`, `innerHTML`, or raw HTML rendering.
-- [ ] Markdown pipeline unchanged (no `rehype-raw`).
+- [ ] Markdown pipeline unchanged (no `rehype-raw`); custom renderers keep links `http(s)`-only and block remote images.
+- [ ] Clipboard writes are user-initiated, capability-checked, and limited to visible message/code text.
 - [ ] External links use safe protocols and `noopener noreferrer`.
 - [ ] API base URL comes from validated env; no hardcoded origins.
 - [ ] Non-JSON/HTML error bodies are not rendered.
