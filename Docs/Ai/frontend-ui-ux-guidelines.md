@@ -1,6 +1,6 @@
 # Frontend UI/UX Guidelines — RAG Assistant
 
-> **Status:** Design direction for the React application. The app shell, design tokens, and placeholder pages exist; no product UI exists yet.
+> **Status:** Design direction for the React application, with the shell and design system implemented. The responsive layout, sidebar/header navigation, light/dark/system themes, `fa`/`en` direction switching, reusable primitives, and a static `/design-system` reference page exist. No product UI exists yet.
 > **Audience:** frontend engineers, designers, and review agents.
 > **Last updated:** 2026-11-15
 >
@@ -24,13 +24,14 @@
 
 ### 2.1 Foundations
 
-- **Tailwind CSS 4** with CSS variables exposed as semantic tokens.
+- **Tailwind CSS 4** with CSS variables exposed as semantic tokens. The token source is `src/styles/index.css` (`@theme inline`).
 - **shadcn/ui** primitives copied into `components/ui`. Compose; do not fork them for one screen.
 - **Lucide React** icons at consistent sizes (`size-4` inline, `size-5` controls).
+- `/design-system` is the living reference for every primitive in both themes and directions. Update it whenever a primitive changes.
 - Spacing base unit: **4 px**. Use the Tailwind scale; avoid arbitrary values.
 - Radii: `--radius` (default 0.5rem); cards and inputs use the same token.
 - Shadows: subtle, one level for popovers and one for modals. No decorative glow.
-- Motion: 150–200 ms, ease-out; respect `prefers-reduced-motion`.
+- Motion: 150–200 ms, ease-out; respect `prefers-reduced-motion`. No animation library is installed; Radix `data-state` drives the small keyframes.
 
 ### 2.2 Semantic tokens (provisional)
 
@@ -54,6 +55,11 @@ The brand palette is not finalized. Use semantic tokens so the palette can chang
   --warning: 38 92% 45%;
   --info: 205 80% 45%;
   --ring: 221 83% 53%;
+  --sidebar: 210 20% 98%;
+  --sidebar-foreground: 222 20% 12%;
+  --sidebar-accent: 210 30% 94%;
+  --sidebar-accent-foreground: 222 20% 18%;
+  --sidebar-border: 214 20% 88%;
   --radius: 0.5rem;
 }
 
@@ -74,6 +80,11 @@ The brand palette is not finalized. Use semantic tokens so the palette can chang
   --warning: 38 85% 55%;
   --info: 205 75% 58%;
   --ring: 217 90% 62%;
+  --sidebar: 222 26% 8%;
+  --sidebar-foreground: 210 20% 94%;
+  --sidebar-accent: 222 18% 16%;
+  --sidebar-accent-foreground: 210 20% 94%;
+  --sidebar-border: 220 16% 20%;
 }
 ```
 
@@ -86,7 +97,7 @@ Rules:
 
 ### 2.3 Typography
 
-- Primary font: **Vazirmatn**, self-hosted (woff2), weights 400/500/600/700. No third-party font CDN.
+- Primary font: **Vazirmatn**, self-hosted (woff2), weights 400/500/600/700. No third-party font CDN. The font files are not bundled yet; the stack currently falls back to `Segoe UI`/`Tahoma` until they are added.
 - Fallback stack: `Vazirmatn, "Segoe UI", Tahoma, system-ui, sans-serif`.
 - Code font: `ui-monospace, "Cascadia Code", "Consolas", monospace`.
 - Direction: body `dir="rtl"`; code and identifiers `dir="ltr"`.
@@ -112,11 +123,12 @@ Suggested scale:
 ## 3. Light and Dark Themes
 
 - Theme is selected by a `.dark` class on `<html>`, driven by a small `ThemeProvider`.
-- Options: **system**, **light**, **dark**. Persist the preference in `localStorage` under a non-sensitive key (for example `theme`). Theme is not sensitive data.
+- Options: **system**, **light**, **dark**. Persist the preference in `localStorage` under a non-sensitive key (`theme`). Theme is not sensitive data.
 - Respect `prefers-color-scheme` when set to system; listen for changes.
 - Prevent flash of incorrect theme by applying the class before first paint (inline bootstrap in `index.html`).
 - Both themes must be visually reviewed for: borders, disabled states, focus rings, code blocks, citations, and error banners.
 - Do not invert images; use theme-specific assets if needed.
+- Implemented entry point: the theme menu in the header (light/dark/system radio items). The design-system page is the review surface for both themes.
 
 ---
 
@@ -129,7 +141,20 @@ Suggested scale:
 - Chat alignment is semantic, not physical: user messages align `end`, assistant messages align `start`.
 - User and model content may contain Latin text and code. Apply `dir="auto"` to message content containers so bidi runs render correctly; force `dir="ltr"` on code blocks, inline code, URLs, and identifiers.
 - Mixed bidi content must not break layout; test with Persian + English + code in one message.
-- Numbers:
+- ### 4.1 Language switching (Persian/English)
+
+The shell ships two locales and switches them at runtime:
+
+- `LanguageProvider` sets `<html lang>` and `<html dir>` (`fa` → `rtl`, `en` → `ltr`) and serves the typed catalog through `useLanguage().t`.
+- Radix primitives receive direction from `DirectionProvider`, so menus, dialogs, and sheets flip correctly.
+- All layout uses logical utilities; no component positions itself with physical `left`/`right`.
+- Directional icons (send, back, chevrons) mirror; non-directional icons do not.
+- Language options in the menu are labeled in their own language and carry `lang`/`dir`.
+- Persist the choice in `localStorage` (`language`); apply it before first paint.
+- The Persian catalog is the source of the `Messages` type; the English catalog must implement every key.
+- Shell copy is translated now. Product copy will be added to both catalogs when features exist; do not mix languages in one screen.
+
+Numbers:
   - Use Latin digits for identifiers, ports, versions, token counts, page numbers, and code.
   - Use `Intl.NumberFormat('fa-IR')` for user-facing counts and dates where Persian digits are desired.
   - Be consistent within a component.
@@ -145,9 +170,10 @@ Breakpoints follow Tailwind defaults: `sm` 640, `md` 768, `lg` 1024, `xl` 1280.
 
 Layout:
 
-- **Desktop (≥ lg):** fixed sidebar (280 px) with navigation and conversation list; main content area; optional right-side sources panel (360 px) that collapses.
-- **Tablet (md):** sidebar collapses to an icon rail or a sheet; sources panel becomes a drawer.
-- **Mobile (< md):** single column; navigation in a sheet; chat composer pinned above the safe area; sources open as a full-height sheet.
+- **Desktop (≥ lg / 1024 px, implemented):** fixed 288 px (`w-72`) start-side sidebar with brand, navigation, and environment footer; sticky 64 px header with page title and theme/language menus; content column offset by `lg:ps-72` and capped at `max-w-6xl`.
+- **Tablet (md, implemented):** sidebar is hidden; the header menu button opens the navigation in a start-side sheet with focus trap; content stays single-column.
+- **Mobile (< md, implemented):** single column; navigation opens as a full-height start-side sheet (4/5 width, max 288 px); header buttons and sheet controls have 44×44 px touch targets; content uses `dvh`-safe full height.
+- **Future (not implemented):** icon rail, right-side sources panel, composer pinned above the safe area.
 - Use `dvh` (not `vh`) for full-height chat on mobile browsers with dynamic toolbars.
 - Respect safe-area insets (`env(safe-area-inset-bottom)`).
 - Tables become stacked definition lists or horizontally scrollable containers; never cause page-level horizontal scroll.
@@ -188,6 +214,7 @@ Mandatory:
 ### 7.1 Loading
 
 - Lists and pages: **skeletons** that match the final layout; avoid full-page spinners.
+- Lazy route chunks: the router's `hydrateFallbackElement` renders a centered, labeled spinner (`role="status"`), not a blank screen.
 - Buttons: inline spinner plus disabled state; keep the label or use an accessible "loading" label.
 - Chat: typing indicator at the assistant position; when streaming is unavailable, show a clear "generating" state.
 - Never show a fake progress percentage. Use indeterminate progress unless the API reports progress.
@@ -219,6 +246,19 @@ Do not use empty states to imply functionality that is not implemented.
 - Do not display raw server messages, HTML, or stack traces.
 - Destructive failures (delete) must state whether the operation succeeded; never assume.
 - Keep user input and drafts on failure.
+
+### 7.4 Sign-in and session (implemented 2026-11-16)
+
+- `/login` is a standalone centered card on the page background; no sidebar or header, so an unauthenticated user sees no product navigation.
+- Every product route requires a session. Unknown paths resolve inside the authenticated tree, so anonymous visitors reach sign-in first; this avoids revealing which paths exist.
+- During session restore the app shows a full-page labeled spinner. Never flash the login form or a protected page while the session is unknown.
+- Expired session: after a redirect to `/login`, a `role="status"` notice explains that the session ended. Do not stack one error per failed request.
+- Invalid credentials: one generic `role="alert"` above the submit button. Never indicate whether the username exists, and never clear the typed username.
+- Field errors appear under their field with `aria-invalid` and `aria-describedby`; the first invalid field receives focus through the form library's default behavior.
+- The password field has a labeled visibility toggle (`aria-pressed`) and `autoComplete="current-password"`; it is never prefilled.
+- Submit shows a spinner and is disabled while pending, carrying `aria-busy` on the form.
+- The account menu in the header shows the display name and email from the token (display only) and offers sign-out. Sign-out returns to `/login` without a confirmation step because it is non-destructive and reversible.
+- No registration screen exists: the backend has no endpoint. Do not add a disabled register link that implies it will work.
 
 ---
 
@@ -342,7 +382,7 @@ Do not use empty states to imply functionality that is not implemented.
 - Empty: one sentence, no blame.
 - Do not expose backend terminology: avoid «DTO», «Qdrant», «Ollama», «chunk» in user-facing copy. Use «منبع», «بخش», «مدل».
 - Keep English for product terms with no established Persian equivalent, but be consistent (for example, «مدل» not mixing «مدل/Model»).
-- All strings live in `src/i18n/fa.ts`; no inline Persian in deep components.
+- All strings live in the typed catalogs `src/i18n/fa.ts` and `src/i18n/en.ts`; no inline user-facing strings in components. Components receive `t` from `useLanguage()`.
 
 ---
 
@@ -360,6 +400,7 @@ Do not use empty states to imply functionality that is not implemented.
 ## 14. UI Review Checklist
 
 - [ ] RTL layout correct at 360 px, 768 px, 1024 px, and 1440 px.
+- [ ] LTR (English) layout checked at the same widths; direction switch flips navigation, menus, and sheets.
 - [ ] Light and dark themes both checked.
 - [ ] Keyboard-only pass through the primary flow.
 - [ ] Focus visible on every interactive element.

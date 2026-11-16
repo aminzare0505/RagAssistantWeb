@@ -1,6 +1,6 @@
 # Frontend Coding Standards — RAG Assistant
 
-> **Status:** Standards for the React application foundation at `frontend/rag-assistant-ui/`. Product features are not implemented.
+> **Status:** Standards for the React application foundation and design system at `frontend/rag-assistant-ui/`. Product features are not implemented.
 > **Applies to:** all code under `frontend/rag-assistant-ui/src/` and (later) `frontend/rag-assistant-ui/e2e/`.
 > **Last updated:** 2026-11-15
 >
@@ -81,6 +81,8 @@ export type MessageType = (typeof MESSAGE_TYPE)[keyof typeof MESSAGE_TYPE];
 - Dates from the API are `string` (ISO 8601). Convert once at the display boundary; do not store `Date` objects in the query cache.
 - Nullability from the backend is preserved: `string | null`, not `string` with a default that hides missing data.
 - Do not cast through `as unknown as T`. If a cast is unavoidable, isolate it in one audited adapter and explain why.
+- Theme and language are closed unions: `type Theme = 'light' | 'dark' | 'system'`, `type Language = 'fa' | 'en'`, `type Direction = 'rtl' | 'ltr'`. Narrow untrusted storage values with a type guard (`isTheme`, `isLanguage`) before use.
+- The message catalog type is derived from the Persian catalog (`type Messages = typeof fa`); the English catalog is typed as `Messages`, so a missing key or a mismatched shape fails the build.
 
 ### 2.3 Generics and utilities
 
@@ -98,7 +100,10 @@ export type MessageType = (typeof MESSAGE_TYPE)[keyof typeof MESSAGE_TYPE];
 | Component export | PascalCase, **named** | `export function ChatMessage(...)` |
 | Hook file | kebab-case with `use-` | `use-auto-scroll.ts` |
 | Hook export | `use` + camelCase | `useAutoScroll` |
-| Context/provider | PascalCase + `Provider` | `AuthProvider` |
+| Context/provider | PascalCase + `Provider` | `AuthProvider`, `ThemeProvider`, `LanguageProvider` |
+| Theme/language context hook | `use` + noun | `useTheme`, `useLanguage` |
+| Message catalog | language code | `src/i18n/fa.ts`, `src/i18n/en.ts` |
+| Translation access | `t` from `useLanguage()` | `const { t, dir, language } = useLanguage()` |
 | Zod schema | camelCase + `Schema` | `loginSchema` |
 | Inferred type | PascalCase | `type LoginInput = z.infer<typeof loginSchema>` |
 | Query key factory | camelCase + `Keys` | `chatKeys` |
@@ -194,6 +199,11 @@ export function useConversation(conversationId: string) {
 }
 ```
 
+- `useLanguage()` returns `{ language, dir, t, setLanguage }` and throws outside `LanguageProvider`.
+- `useTheme()` returns `{ theme, setTheme }` and throws outside `ThemeProvider`.
+- Neither hook writes to `document` during render; they apply side effects in an effect or in the setter, before notifying React.
+- Components read copy through `t`; importing `fa`/`en` directly is limited to providers, the page-title resolver, and the error boundary (which renders outside the providers).
+
 ---
 
 ## 6. Separation of Concerns
@@ -206,7 +216,8 @@ export function useConversation(conversationId: string) {
 | `src/api/http-client` | headers, base URL, cancellation, envelope parsing, error normalization | feature-specific logic |
 | `src/api/types` | wire DTOs | UI view models |
 | Component | rendering and local interaction | `fetch`, business rules |
-| `src/i18n` | user-visible strings | logic |
+| `src/theme` | theme preference, `.dark` class, system media query | feature logic |
+| `src/i18n` | message catalogs, language preference, `lang`/`dir`, translation access | business logic, formatting of API data |
 
 Additional rules:
 
@@ -248,6 +259,14 @@ Prefer duplication of three similar lines over a premature helper. Move code to 
 - Password fields must not be prefilled from storage.
 - File inputs are not controlled; handle them with a dedicated upload component.
 
+Implemented reference form (2026-11-16): `src/features/auth/routes/login-page.tsx` with `react-hook-form@7.66.0`, a Zod `loginSchema`, and `zodResolver@5.2.2`. It demonstrates the required pattern:
+
+- Validation runs on submit (React Hook Form's default mode); field messages come from `t.auth.errors.*`, not hardcoded strings.
+- Each field sets `aria-invalid` and `aria-describedby` pointing at its error node; the form-level failure renders in a `role="alert"` region.
+- Submit is disabled while `isSubmitting`; the form carries `aria-busy`.
+- Because `handleSubmit` is async, the submit handler is wrapped so ESLint's `no-misused-promises` rule stays satisfied (`void onSubmit(event)`), and a rejected login is caught into form state rather than becoming an unhandled rejection.
+- The password field has a visibility toggle with `aria-pressed` and no autofill (`autoComplete="current-password"` on the input).
+
 ---
 
 ## 9. Async, Cancellation, and Concurrency
@@ -267,7 +286,8 @@ Prefer duplication of three similar lines over a premature helper. Move code to 
 
 - Tailwind utilities plus theme tokens; no ad-hoc hex colors in components.
 - Use the `cn()` helper (`clsx` + `tailwind-merge`) for conditional classes.
-- Use logical properties: `ps-*`/`pe-*`/`ms-*`/`me-*`, `start-*`/`end-*`, `text-start`/`text-end`. Avoid `left`/`right` except for genuinely physical positioning.
+- Sidebar surfaces use the `sidebar` tokens (`bg-sidebar`, `text-sidebar-foreground`, `border-sidebar-border`, `bg-sidebar-accent`); do not reuse `muted` for navigation states.
+- Use logical properties: `ps-*`/`pe-*`/`ms-*`/`me-*`, `start-*`/`end-*`, `text-start`/`text-end`, `border-s`/`border-e`. Avoid `left`/`right` except for genuinely physical positioning (for example, a decorative layer).
 - Inline `style` is allowed only for runtime-calculated values (for example, a progress width). Document unusual cases.
 - Do not modify shadcn primitives to add feature-specific behavior; compose them in `components/common`.
 - Dark mode uses the `.dark` class on the root element and CSS variables; no conditional color classes scattered through components where a token will do.
@@ -327,6 +347,8 @@ Prefer duplication of three similar lines over a premature helper. Move code to 
 | `console.log` in committed code | Noise and data leakage |
 | Hardcoded API base URLs | Environment coupling |
 | Hardcoded Persian strings inside deep components | Inconsistent copy, no catalog |
+| Hardcoding `dir`, `lang`, or physical left/right layout | Breaks the runtime language switch |
+| Importing `fa`/`en` in components instead of `useLanguage().t` | Bypasses the active locale |
 | `index` as React key for dynamic lists | Incorrect reconciliation |
 | Suppressing ESLint/TS rules without justification | Hidden defects |
 | `window.location.href` for internal navigation | Full reload, loses state |

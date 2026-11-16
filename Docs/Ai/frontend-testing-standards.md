@@ -1,8 +1,8 @@
 # Frontend Testing Standards — RAG Assistant
 
-> **Status:** Standards for the React application. Foundation tests exist (3, passing); product-feature tests do not.
+> **Status:** Standards for the React application. **48 tests across 9 files pass** (shell/routing, theme and language preferences, design-system primitives, HTTP client transport and refresh, auth provider lifecycle, login page, protected routing, JWT display decoding, safe `returnTo`). No product-feature tests exist beyond authentication.
 > **Scope:** `RagAssistantWebApp` only. Backend tests (`RagAssistant.Tests`, xUnit) are owned by `RagAssistantApi` and must not be changed from this repository.
-> **Last updated:** 2026-11-15
+> **Last updated:** 2026-11-16
 >
 > Related: [Architecture](./frontend-architecture.md) · [Coding standards](./frontend-coding-standards.md) · [API integration](./frontend-api-integration.md) · [Workflow](./frontend-workflow.md)
 
@@ -87,6 +87,16 @@ afterEach(() => {
 
 Add global stubs only for APIs genuinely unavailable in jsdom (for example, `matchMedia`, `ResizeObserver`, `scrollTo`). Each stub must be minimal and documented. Do not stub `fetch` globally here.
 
+Implemented stubs in `src/test/setup.ts` (required by the Radix primitives and the theme provider):
+
+- `window.matchMedia` returning a non-matching `MediaQueryList` with `addEventListener`/`removeEventListener` (the theme provider subscribes when the theme is `system`).
+- `ResizeObserver` with no-op `observe`/`unobserve`/`disconnect` (popover and dialog positioning).
+- `Element.prototype.scrollIntoView`, `hasPointerCapture`, `releasePointerCapture`, and `setPointerCapture` (menu pointer handling and focus movement).
+
+`afterEach` must also reset global state that providers mutate outside React: call `cleanup()`, `localStorage.clear()`, remove the `dark` class, and restore `<html lang="fa" dir="rtl">`. Without this, preferences leak between tests.
+
+Implemented `afterEach` (2026-11-16): `cleanup()`, `clearTokens()`, `sessionStorage.clear()`, `localStorage.clear()`, `vi.unstubAllGlobals()`, remove `dark`, restore `<html lang="fa" dir="rtl">`. Token cleanup runs before storage clearing so the module-level access token does not survive a test.
+
 ### 3.3 Path aliases
 
 The `@/` alias must resolve identically in Vite and Vitest. Do not duplicate alias definitions with different values.
@@ -132,18 +142,43 @@ Naming:
 - Error state with retry.
 - Keyboard interaction for interactive elements.
 - RTL/Persian content rendering (text direction, no clipped labels) where layout matters.
+- LTR/English content rendering after the language switch.
 - Disabled/pending state prevents double submission.
 
 ### 5.3 Provider wrapper
 
-Create one `renderWithProviders` helper that supplies:
+`src/test/render-app.tsx` renders the real `AppProviders` stack around a memory router:
 
-- `QueryClientProvider` with a fresh client per test (`retry: false`, `gcTime: 0`).
-- `MemoryRouter` when the component uses routing.
-- Auth context with a controllable test session.
-- Theme provider if needed.
+- `ThemeProvider` (light/dark/system).
+- `LanguageProvider` + Radix `DirectionProvider` (fa/rtl default).
+- `TooltipProvider`.
+- `QueryClientProvider` with a fresh client per test (`retry: false`, `gcTime: 0`), injectable via the `queryClient` prop.
+- `createMemoryRouter(routes, { initialEntries })` for route-level tests.
+
+For component-only tests, render the component inside `AppProviders`; do not bypass the providers if the component reads `t`, `dir`, or `theme`. When authentication exists, add a controllable test session to this helper rather than a second wrapper.
+
+Implemented test session (2026-11-16): `renderApp` (and the provider helper) accepts `authenticated?: boolean`, default `true`, and seeds a fake session before render using `src/test/auth.ts`:
+
+- `createAccessToken(claims?)` builds a three-segment JWT with `UserId`, `preferred_username`, `useremail`. It is not signed; the app never verifies it.
+- `createTokenResult(overrides?)` returns a valid `JwtTokenResult`.
+- `seedSession()` stores both tokens via the real `setTokens`; `seedRefreshToken()` writes only the refresh token to `sessionStorage` (for restore tests).
+- Auth tests that need an anonymous start pass `authenticated: false`.
+
+Seeding by default keeps the pre-existing shell/layout tests meaningful now that `/` is protected. `src/test/api.ts` provides `apiEnvelope`, `apiFailure`, `jsonResponse`, and the `FetchMock` type used with `vi.fn<FetchMock>()`.
 
 Do not create a provider monolith that hides which dependency a test relies on; allow overrides.
+
+### 5.4 Theme, language, and direction coverage
+
+Required shell scenarios (implemented in `src/app/preferences.test.tsx` and `src/app/router.test.tsx`):
+
+- Default state is Persian, RTL, and system theme.
+- Selecting dark adds `.dark` to `<html>` and persists `theme=dark`; selecting light removes it.
+- Selecting system persists `theme=system` and follows the media query.
+- Selecting English changes the accessible names and copy, sets `<html lang="en" dir="ltr">`, and persists `language=en`; switching back restores `fa`/`rtl`.
+- Persisted preferences are applied on load before assertions.
+- Mobile navigation sheet opens, navigates, and closes on Escape; focus returns to the trigger (Radix behavior).
+- Every interactive primitive is asserted by role/name, not by class name.
 
 ---
 
@@ -185,6 +220,13 @@ Rules:
 - Reset mocks between tests (`restoreMocks: true`).
 - Do not mock React Query itself; test the real caching/error behavior.
 
+Implemented transport/flow strategy (2026-11-16):
+
+- Transport tests (`src/api/http-client.test.ts`) stub `fetch` with `vi.stubGlobal('fetch', mock)`. `mock` is a `vi.fn<FetchMock>()` typed by `FetchMock` in `src/test/api.ts`, so it has no untyped parameters and lint stays clean.
+- Flow tests (login page, provider, routing) also stub `fetch`, because they exercise the real client and envelope parsing. That is deliberate: mocking `httpClient` there would hide the 204/envelope behavior the tests exist to protect.
+- `vi.unstubAllGlobals()` in `afterEach` restores any real `fetch`.
+- No MSW is installed; add it only when a multi-request interaction cannot be expressed with a sequenced fetch stub.
+
 ### 7.2 MSW (optional)
 
 Use MSW when a test spans multiple requests and the interaction between them matters (for example, 401 → refresh → retry). MSW is dev-only; it must never be enabled in a production build.
@@ -211,14 +253,24 @@ Use MSW when a test spans multiple requests and the interaction between them mat
 
 ### 8.2 Authentication
 
-- Login success stores the access token in memory and the refresh token in session storage.
-- Access token is never written to `localStorage`.
-- Page reload with a stored refresh token triggers exactly one refresh.
-- Concurrent 401s trigger exactly one refresh.
-- Refresh failure clears the session and redirects to login.
-- Refresh network ambiguity is **not** retried with the same token.
-- Password change success clears the session.
-- Logout clears tokens and TanStack Query caches.
+Status legend: **✔ implemented** (covered by an executed test), **— not applicable yet**.
+
+- ✔ Login success stores the access token in memory and the refresh token in session storage.
+- ✔ Access token is never written to `localStorage`.
+- ✔ Page reload with a stored refresh token triggers exactly one refresh (provider restore test).
+- ✔ Concurrent 401s trigger exactly one refresh.
+- ✔ Refresh failure clears the session and redirects to login (expired-session notice with `returnTo`).
+- ✔ Refresh without a stored token rejects and emits `session-expired` only once.
+- ✔ Refresh network ambiguity is **not** retried with the same token (no retry loop in `performRefresh`).
+- ✔ Logout clears tokens and local session state, and posts to `/api/auth/logout` with the refresh token.
+- ✔ `login`, `logout`, and session expiry call `queryClient.clear()`. No feature query exists yet, so cache contents cannot be asserted; add that assertion with the first feature query.
+- ✔ Unsafe or missing `returnTo` is ignored (open-redirect tests).
+- ✔ Invalid credentials (HTTP 204) and network/server failures render safe messages and stay on `/login`.
+- ✔ Empty submit is blocked client-side and never calls `fetch`.
+- ✔ An authenticated visitor of `/login` is redirected away.
+- ✔ A protected deep link redirects to `/login?returnTo=…` and returns there after login.
+- ✔ JWT display decoding degrades to nulls for malformed tokens.
+- — Password change and logout-all (no UI yet).
 
 ### 8.3 Chat UI
 
@@ -319,7 +371,7 @@ export default defineConfig({
 - Persist the resulting refresh token into `sessionStorage` via `page.addInitScript` for the base URL.
 - Do not hardcode credentials. Read them from an untracked `.env.e2e.local` or CI secrets.
 - Never run E2E against production or a shared database.
-- The backend currently does not compile; E2E against the real API is **blocked**. Do not substitute a fake backend and call the flow verified.
+- The backend builds but cannot start (JWT secret < 32 chars); E2E against the real API is **blocked**. Do not substitute a fake backend and call the flow verified.
 
 ### 10.4 Determinism
 

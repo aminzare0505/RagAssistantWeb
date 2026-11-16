@@ -1,5 +1,125 @@
 # CHANGELOG_AI
 
+## 2026-11-16 — Implement authentication UI and integration
+
+**Scope:** Frontend-only (Task 3). Added the HTTP transport, session primitives, `AuthProvider`, login page, route guards, account menu, and 33 new tests, using only the source-verified auth endpoints. The backend repository was not modified. No register page was built because the backend has no registration endpoint. Chat, documents, data sources, settings, streaming, and citations remain blocked.
+
+**Backend endpoints used:** `POST /api/auth/login`, `POST /api/auth/refresh`, `POST /api/auth/logout`. `/api/auth/logout-all` and `/api/auth/change-password` exist but have no UI.
+
+**Security decisions:** access token in memory only; refresh token in `sessionStorage` (interim); no tokens in `localStorage`; single-flight refresh with no automatic retry (family revocation); 401 → one refresh → one retry; no refresh for login/refresh/logout; `queryClient.clear()` on login, logout, and expiry; decoded claims used for display only; `returnTo` validated to block open redirects and self-redirect to `/login`.
+
+**Changed files (all created unless marked _modified_):**
+
+- `frontend/rag-assistant-ui/package.json`, `package-lock.json` — _modified_: added `react-hook-form@^7.66.0` and `@hookform/resolvers@^5.2.2`.
+- `frontend/rag-assistant-ui/src/api/http-client.ts` — transport: URL building, bearer header, 15 s timeout with abort composition, envelope parsing, status classification, single-flight refresh, retry-once.
+- `frontend/rag-assistant-ui/src/api/api-error.ts` — `ApiError` and `ApiErrorKind`.
+- `frontend/rag-assistant-ui/src/api/types/api-response.ts`, `src/api/types/auth.ts` — envelope and auth wire DTOs; Zod `jwtTokenResultSchema`.
+- `frontend/rag-assistant-ui/src/auth/token-store.ts` — memory access token, `sessionStorage` refresh token, storage-blocked fallback.
+- `frontend/rag-assistant-ui/src/auth/jwt.ts`, `src/auth/types.ts` — display-only claim decoding and `AuthUser`.
+- `frontend/rag-assistant-ui/src/auth/session-events.ts` — single `session-expired` signal.
+- `frontend/rag-assistant-ui/src/features/auth/auth-provider.tsx`, `auth-context.ts`, `use-auth.ts`, `types.ts`, `index.ts` — session state machine, restore effect, login/logout, expiry subscriber, public exports.
+- `frontend/rag-assistant-ui/src/features/auth/auth-api.ts` — login/refresh/logout request helpers over `httpClient`.
+- `frontend/rag-assistant-ui/src/features/auth/require-auth.tsx`, `auth-layout.tsx`, `components/session-loading.tsx` — guard, public auth layout, restoring spinner.
+- `frontend/rag-assistant-ui/src/features/auth/routes/login-page.tsx`, `login-schema.ts`, `login-error-message.ts`, `safe-return-to.ts`, `components/login-shell.tsx` — login form, validation schema, safe error copy, redirect validation.
+- `frontend/rag-assistant-ui/src/features/auth/components/user-menu.tsx` — account dropdown with identity and sign-out.
+- `frontend/rag-assistant-ui/src/app/router.tsx` — _modified_: `AuthLayout` → `/login`; `RequireAuth` around the shell; 404 inside the authenticated tree.
+- `frontend/rag-assistant-ui/src/layouts/header.tsx` — _modified_: account menu.
+- `frontend/rag-assistant-ui/src/i18n/fa.ts`, `src/i18n/en.ts` — _modified_: auth strings, errors, and updated home copy.
+- `frontend/rag-assistant-ui/src/test/auth.ts` — fake JWT and session seeding helpers.
+- `frontend/rag-assistant-ui/src/test/api.ts` — envelope/response helpers and `FetchMock`.
+- `frontend/rag-assistant-ui/src/test/render-app.tsx` — _modified_: `authenticated` prop, default session seeding.
+- `frontend/rag-assistant-ui/src/test/setup.ts` — _modified_: token/session cleanup and `vi.unstubAllGlobals()`.
+- `frontend/rag-assistant-ui/src/api/http-client.test.ts` — 11 transport tests.
+- `frontend/rag-assistant-ui/src/features/auth/auth-provider.test.tsx` — 5 session-lifecycle tests.
+- `frontend/rag-assistant-ui/src/features/auth/routes/login-page.test.tsx` — 8 login/redirect tests.
+- `frontend/rag-assistant-ui/src/app/auth-routing.test.tsx` — 2 protected-route tests.
+- `frontend/rag-assistant-ui/src/auth/jwt.test.ts` — 3 decoding tests.
+- `frontend/rag-assistant-ui/src/features/auth/safe-return-to.test.ts` — 4 redirect-safety tests.
+- `AGENTS.md`, `PROJECT_CONTEXT.md` — _modified_: implemented status, commands, backend build/runtime facts, follow-ups.
+- `Docs/Ai/frontend-architecture.md`, `frontend-api-integration.md`, `frontend-security-standards.md`, `frontend-testing-standards.md`, `frontend-coding-standards.md`, `frontend-ui-ux-guidelines.md`, `frontend-workflow.md` — _modified_: implemented auth layering, contracts, storage, guards, tests, form pattern, sign-in states, and a Task 3 record.
+- `Docs/Ai/reviews/2026-11-16-auth-ui-integration.md` — review report.
+
+**Summary:**
+Implemented authentication against the source-verified backend contract. The app now starts behind a session restore that exchanges the stored refresh token once, guards every product route, and redirects unauthenticated visitors to a Persian/English login page that preserves their original destination. Login uses React Hook Form + Zod with accessible field errors and a generic invalid-credentials message for HTTP 204. The HTTP client sends bearer tokens, ignores the unreliable body `statusCode`, classifies errors, and performs exactly one shared refresh on 401 before retrying once. Sign-out clears tokens and query caches and posts the refresh token. No registration page exists because the backend has no endpoint.
+
+**Typecheck:** `npm run typecheck` (`tsc -b`) — passed, no errors.
+**Lint:** `npm run lint` (`eslint .`) — passed, no findings.
+**Tests:** `npm run test` (`vitest run`) — 48/48 passed in 9 files (15 pre-existing + 33 new).
+**Build:** `npm run build` (`tsc -b && vite build`) — succeeded; CSS 33.40 kB, main JS 646.91 kB (203.37 kB gzip). Vite warns that the main chunk exceeds 500 kB; no failure.
+**Browser verification:** dev server with a mocked `window.fetch`: protected redirect with `returnTo`, empty-field validation with `aria-invalid`, invalid credentials, successful login returning to `/settings`, refresh token in `sessionStorage` only, account menu identity, logout POST + redirect, theme switch, and English/LTR switch. Session restore was exercised through a real failing request (502 → expired notice) and a stubbed success path. **Screenshots were not produced** because the browser tool reported an unavailable viewport (0×0); interactions were driven by scripted DOM events.
+**E2E:** Not executed. Playwright is not installed, and the backend builds but cannot start (`Authentication:Jwt:SecretKey` < 32 chars), so no live-contract verification was possible.
+**Independent review:** Not performed. No reviewer agent was available; the report is a self-review by the implementing agent.
+
+**Known issues / follow-ups:**
+- No runtime verification of any auth endpoint; all contracts remain source-verified only.
+- Registration is not implemented because no backend endpoint exists.
+- Change password and logout-all have no UI.
+- Refresh token in `sessionStorage` remains XSS-readable; a duplicated tab can race the original. Backend httpOnly cookies are the recommended fix.
+- Session-expiry redirect clears local state but does not show a toast per failed request; it shows one notice on the login page.
+- Pre-existing defect: feature placeholder pages hardcode Persian copy, so English mode shows Persian feature text.
+- Backend build failure no longer blocks compilation, but the missing JWT secret blocks startup.
+- Main JS chunk is 646.91 kB (203.37 kB gzip); split when feature code lands.
+
+## 2026-11-15 — Implement application layout and design system
+
+**Scope:** Frontend-only (Task 2). Added the responsive shell, sidebar/header navigation, light/dark/system themes, bilingual `fa`/`en` RTL-LTR support, reusable UI primitives, a static design-system reference page, and tests. The backend repository was not modified. Authentication and all product features remain unimplemented, and no API endpoint, DTO, query parameter, or status code was invented.
+
+**Changed files (all created unless marked _modified_):**
+
+- `frontend/rag-assistant-ui/package.json`, `package-lock.json` — _modified_: added Radix dialog, direction, dropdown-menu, slot, and tooltip.
+- `frontend/rag-assistant-ui/index.html` — _modified_: pre-paint theme/language bootstrap.
+- `frontend/rag-assistant-ui/src/styles/index.css` — _modified_: sidebar tokens, dark-theme values, dialog/sheet keyframes, reduced-motion coverage.
+- `frontend/rag-assistant-ui/src/i18n/fa.ts` — _modified_: shell and design-system catalog; exports `Messages`.
+- `frontend/rag-assistant-ui/src/i18n/en.ts` — English catalog typed as `Messages`.
+- `frontend/rag-assistant-ui/src/i18n/messages.ts` — locale map, `Language`/`Direction`, `directionFor`, `isLanguage`.
+- `frontend/rag-assistant-ui/src/i18n/use-language.ts`, `language-provider.tsx` — translation context, `lang`/`dir` application, persistence.
+- `frontend/rag-assistant-ui/src/theme/use-theme.ts`, `theme-provider.tsx` — light/dark/system, `.dark` class, media-query listener, persistence.
+- `frontend/rag-assistant-ui/src/app/navigation.ts` — typed primary navigation.
+- `frontend/rag-assistant-ui/src/app/use-page-title.ts` — page title resolution and `document.title`.
+- `frontend/rag-assistant-ui/src/app/providers/app-providers.tsx` — _modified_: theme, language, direction, and tooltip providers around Query.
+- `frontend/rag-assistant-ui/src/app/router.tsx` — _modified_: design-system route, lazy hydrate fallbacks.
+- `frontend/rag-assistant-ui/src/app/error-boundary.tsx` — _modified_: bilingual fallback using `ErrorState`; imports the catalog because it renders outside providers.
+- `frontend/rag-assistant-ui/src/layouts/app-shell.tsx` — _modified_: skip link, fixed sidebar, content offset, sticky header, footer.
+- `frontend/rag-assistant-ui/src/layouts/sidebar.tsx`, `header.tsx`, `navigation-list.tsx`, `mobile-navigation.tsx` — sidebar brand/nav/environment, header title and controls, active NavLinks, Radix dialog sheet.
+- `frontend/rag-assistant-ui/src/components/ui/input.tsx`, `card.tsx`, `dialog.tsx`, `dropdown-menu.tsx`, `tooltip.tsx`, `spinner.tsx`, `skeleton.tsx` — vendored Radix-based primitives.
+- `frontend/rag-assistant-ui/src/components/ui/button.tsx` — _modified_: 44 px-friendly icon sizing rule.
+- `frontend/rag-assistant-ui/src/components/shared/empty-state.tsx`, `error-state.tsx` — shared feedback states.
+- `frontend/rag-assistant-ui/src/components/shared/theme-menu.tsx`, `language-menu.tsx` — header preference menus with tooltips.
+- `frontend/rag-assistant-ui/src/components/shared/feature-placeholder.tsx` — _modified_: uses the catalog and `EmptyState`.
+- `frontend/rag-assistant-ui/src/pages/home-page.tsx` — _modified_: catalog-driven content on `Card` primitives.
+- `frontend/rag-assistant-ui/src/pages/design-system-page.tsx` — static primitive reference.
+- `frontend/rag-assistant-ui/src/pages/route-loading.tsx` — labeled spinner for lazy route hydration.
+- `frontend/rag-assistant-ui/src/pages/not-found-page.tsx`, `route-error-page.tsx` — _modified_: catalog-driven shared states.
+- `frontend/rag-assistant-ui/src/app/router.test.tsx` — _modified_: shell, navigation sheet, Escape, design-system, and title coverage.
+- `frontend/rag-assistant-ui/src/app/preferences.test.tsx` — theme and language switching/persistence.
+- `frontend/rag-assistant-ui/src/pages/design-system-page.test.tsx` — primitive rendering, dialog, and dropdown.
+- `frontend/rag-assistant-ui/src/test/setup.ts` — _modified_: Radix jsdom stubs and global preference reset.
+- `frontend/rag-assistant-ui/src/test/render-app.tsx` — _modified_: renders `AppProviders`.
+- `AGENTS.md`, `PROJECT_CONTEXT.md` — _modified_: status, verified results, decisions, next steps.
+- `Docs/Ai/frontend-architecture.md`, `frontend-coding-standards.md`, `frontend-testing-standards.md`, `frontend-ui-ux-guidelines.md`, `frontend-security-standards.md`, `frontend-workflow.md` — _modified_: bilingual shell, tokens, components, tests, and storage rules.
+- `Docs/Ai/reviews/2026-11-15-layout-design-system.md` — review report.
+- `Docs/Ai/reviews/assets/2026-11-15-layout/*.png` — ten verification screenshots.
+
+**Summary:**
+Implemented a responsive shell with a fixed sidebar at `lg` and a dialog-based navigation sheet below it, a sticky header with page title, theme menu, and language menu. Added light/dark/system theming and a Persian/English RTL-LTR switch, both persisted in `localStorage` and applied before first paint. Added Radix-backed Button, Input, Card, Dialog, DropdownMenu, Tooltip, Spinner, and Skeleton primitives plus shared EmptyState/ErrorState, and a static `/design-system` page that exercises them. Product routes remain honest placeholders; no HTTP request, auth flow, or fake data was added.
+
+**Typecheck:** `npm run typecheck` (`tsc -b`) — passed, no errors.
+**Lint:** `npm run lint` (`eslint .`) — passed, no findings.
+**Tests:** `npm run test` (`vitest run`) — 15/15 passed in 3 files.
+**Build:** `npm run build` (`tsc -b && vite build`) — succeeded; CSS 32.09 kB, JS 585.50 kB (183.89 kB gzip). Vite warns that the main chunk exceeds 500 kB; no failure.
+**Browser verification:** dev server + headless Chrome at 360, 768, and 1440 px in `fa`/`en` and light/dark; sidebar and sheet navigation, dialog, dropdown, theme, and language switching behaved correctly; no console errors or warnings; no page-level horizontal overflow. Screenshots are under `Docs/Ai/reviews/assets/2026-11-15-layout/`.
+**Audit:** `npm audit --omit=dev` — 0 production vulnerabilities. Full tree: 7 moderate, all dev-only (`typescript-eslint` → `minimatch`).
+**E2E:** Not executed. Playwright is not installed and the backend does not compile.
+**Independent review:** Not performed. No reviewer agent was available; the report is a self-review by the implementing agent.
+
+**Known issues / follow-ups:**
+- Self-hosted Vazirmatn files are still absent; the font stack falls back to system fonts.
+- Main JS chunk is 585.50 kB (183.89 kB gzip); split when feature code lands.
+- The dialog/sheet animations are CSS keyframes; no animation library was added.
+- Theme and language are client-only; there is no server-side preference endpoint.
+- Placeholder pages have no functionality and must not be described as implemented.
+- Backend build failure still blocks all runtime integration.
+
 ## 2026-11-15 — Create frontend project foundation
 
 **Scope:** Frontend-only. Created the runnable application skeleton at `frontend/rag-assistant-ui/`. The backend repository was not modified. No product feature was implemented, and no API endpoint, DTO, or route was invented.

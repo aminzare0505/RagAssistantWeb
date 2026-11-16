@@ -1,9 +1,9 @@
 # Frontend API Integration — RAG Assistant
 
-> **Status:** Contract reference for the React application. The foundation exists, but it has **no HTTP client or API layer** and makes no requests yet.
+> **Status:** Contract reference for the React application. The HTTP transport and the **authentication** flow are implemented and consume only the endpoints in §4. No other endpoint is called.
 > **Rule:** Only contracts verified in backend source may be documented as endpoints. Nothing here may be invented.
-> **Backend baseline:** `RagAssistantApi` at commit `afd92ec`, source-inspected 2026-11-15. **The backend does not compile at this commit** (`RagAssistant.Api/Controllers/ChatController.cs:31`), so every contract below is **source-verified, not runtime-verified**.
-> **Last updated:** 2026-11-15
+> **Backend baseline:** `RagAssistantApi` at `afd92ec` with an uncommitted working tree, source-inspected 2026-11-16. `dotnet build RagAssistant.Api.slnx` **succeeds** (0 errors), but the API cannot start: `Authentication:Jwt:SecretKey` is shorter than 32 characters. No endpoint has been executed, so every contract below is **source-verified, not runtime-verified**.
+> **Last updated:** 2026-11-16
 >
 > Related: [Architecture](./frontend-architecture.md) · [Security](./frontend-security-standards.md) · [Testing](./frontend-testing-standards.md) · [Project context](../../PROJECT_CONTEXT.md)
 
@@ -193,6 +193,17 @@ export interface ChangePasswordRequest {
 - `JwtTokenResult.refreshTokenFamilyId` is informational; the client does not need it.
 - Do not decode the token to decide authorization. Display use only (see security doc).
 - No `/api/auth/me`, `/api/auth/register`, password reset, or MFA endpoints exist.
+- **No registration endpoint exists**, so no register page was built. The login screen is the only auth entry point.
+
+### 4.7 Implemented frontend usage
+
+| Endpoint | Called from | Notes |
+|---|---|---|
+| `POST /api/auth/login` | `AuthProvider.login` → `src/features/auth/auth-api.ts` | Body `{ username, password }`; 204 → `invalid-credentials` `ApiError`; tokens stored via `src/auth/token-store.ts` |
+| `POST /api/auth/refresh` | `src/api/http-client.ts` refresh orchestration and `AuthProvider` restore | Single-flight; failure clears the session and emits `session-expired` |
+| `POST /api/auth/logout` | `AuthProvider.logout` | Refresh token from `sessionStorage`; local state cleared regardless of the response |
+| `POST /api/auth/logout-all` | not called | No UI yet |
+| `POST /api/auth/change-password` | not called | No UI yet |
 
 ---
 
@@ -312,6 +323,20 @@ export class ApiError extends Error {
 - Never attach request bodies, tokens, or response HTML to the error object.
 - Map domains to Persian copy in one module; do not scatter strings.
 
+### 5.7 Implemented behavior (2026-11-16)
+
+What `src/api/http-client.ts` actually does now:
+
+- `request<T>(path, options)` with `{ method = 'GET', body, signal, auth = 'required', timeoutMs = 15_000, envelopeFailureKind = 'server' }`. `HttpMethod` is `'GET' | 'POST' | 'DELETE'`.
+- `auth: 'required'` attaches `Authorization: Bearer` and **throws `unauthorized` without calling `fetch` when no access token exists**. Anonymous endpoints (login, refresh, logout) must pass `auth: 'none'`.
+- URL = trimmed `env.apiBaseUrl` + path. Headers: `Accept: application/json`; `Content-Type` only when a body is present.
+- Timeout and caller abort are composed with a local `AbortController`; an abort that originated from the caller becomes `aborted`, a fired timer becomes `timeout`, any other `fetch` rejection becomes `network`.
+- `204` is classified as `unauthorized` because the only verified 204 is login with invalid credentials.
+- Non-2xx: statuses map to `unauthorized`/`forbidden`/`not-found`/`validation` (400/422, carrying envelope `errors`)/`server` (5xx, retryable)/`contract`.
+- **401 handling:** a 401 on an `auth !== 'none'` request triggers `refreshAccessToken()` and one retry, guarded by `hasRetried`. If the in-memory token changed while the request was in flight, it retries immediately without refreshing.
+- **Envelope rule:** HTTP 2xx must be JSON with a boolean `isSuccess`. Missing/non-JSON body or wrong shape → `contract`. `isSuccess: false` → an `ApiError` whose kind comes from `envelopeFailureKind` (login/refresh pass `unauthorized`); the envelope `statusCode` is ignored.
+- **Single-flight refresh:** module-level `refreshInFlight` promise; all callers share it. Refresh sends `{ refreshToken }` with `auth: 'none'`, validates the response with the Zod `jwtTokenResultSchema`, and stores tokens via `src/auth/token-store.ts`. Any failure clears tokens and emits one `session-expired` event before rethrowing. No automatic retry of refresh.
+
 ---
 
 ## 6. Cancellation
@@ -329,7 +354,7 @@ export class ApiError extends Error {
 
 ### 7.1 Current state
 
-**No streaming contract exists.** Verified: no `IAsyncEnumerable` action, no `text/event-stream`, no SignalR registration or hub. `ChatController` returns a full object (and does not compile).
+**No streaming contract exists.** Verified: no `IAsyncEnumerable` action, no `text/event-stream`, no SignalR registration or hub. `ChatController` returns a full object; its current source is uncommitted and unverified.
 
 Therefore:
 
@@ -355,14 +380,16 @@ This is a **proposal**, not an endpoint. Do not code against it before it is imp
 
 ## 8. Chat Contract (Not Usable)
 
-`ChatController` exists in source but is invalid:
+At the last verified inspection (`afd92ec`, 2026-11-15) `ChatController` was invalid:
 
-- Two actions share `[HttpPost("Chat")]`.
-- Line 31 contains a syntax error: `ChatAboutFileAsync(conversations,)`.
+- Two actions shared `[HttpPost("Chat")]`.
+- Line 31 contained a syntax error: `ChatAboutFileAsync(conversations,)`.
 - The intended `POST /api/Chat/Chat` accepts a JSON array of `Conversation`.
 - `Conversation` carries only a numeric message type and text.
-- `RagService.ChatAboutFileAsync` still contains demo/debug code (`int.Parse("e")`) and writes a demo `SiteUser`, so it throws before producing an answer.
-- `ChatAsync` delegates to the chat completion service without retrieval, but the controller cannot be reached because the project does not build.
+- `RagService.ChatAboutFileAsync` contained demo/debug code (`int.Parse("e")`) and wrote a demo `SiteUser`, so it threw before producing an answer.
+- `ChatAsync` delegated to the chat completion service without retrieval.
+
+The uncommitted working tree inspected on 2026-11-16 modifies `ChatController` and the solution now builds, but nothing in the chat path was executed and the API cannot start. **Do not assume the defects above are fixed.** The contract is unverified and unusable.
 
 Intended-but-unconfirmed DTOs:
 

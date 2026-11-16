@@ -1,11 +1,10 @@
 # Frontend Architecture — RAG Assistant
 
-> **Status:** Foundation implemented; product features are not. The React application lives at `frontend/rag-assistant-ui/` and currently contains the shell, routing, providers, environment validation, design tokens, and initial tests. No chat, document, data-source, settings, or authentication feature exists yet.
+> **Status:** Foundation, the application layout/design system, and the **authentication module** (login, logout, session restore, protected routes) are implemented; chat, documents, data sources, and settings are not. The React application lives at `frontend/rag-assistant-ui/` and contains the responsive shell, navigation, header, light/dark themes, a bilingual (Persian/English) RTL-LTR shell, reusable UI primitives, an HTTP client with envelope/error handling, a single-flight refresh session, and tests. No product feature beyond authentication exists yet.
 >
-> **Backend baseline:** `RagAssistantApi` (ASP.NET Core 8), source-inspected on 2026-11-15 at commit `afd92ec`.
-> At that commit `dotnet build RagAssistant.Api.slnx` fails with one error (`RagAssistant.Api/Controllers/ChatController.cs:31`). No API behavior is runtime-verified.
+> **Backend baseline:** `RagAssistantApi` (ASP.NET Core 8), source-inspected on 2026-11-16 at commit `afd92ec` with an uncommitted working tree. `dotnet build RagAssistant.Api.slnx` now **succeeds** (0 errors), but the API cannot start: it fails its own JWT option validation (`Authentication:Jwt:SecretKey` is shorter than 32 characters), and no documented port is listening. All auth contracts are **source-verified, not runtime-verified**.
 >
-> **Last updated:** 2026-11-15
+> **Last updated:** 2026-11-16
 >
 > **Related documents:**
 > [Coding standards](./frontend-coding-standards.md) · [Security standards](./frontend-security-standards.md) · [Testing standards](./frontend-testing-standards.md) · [UI/UX guidelines](./frontend-ui-ux-guidelines.md) · [API integration](./frontend-api-integration.md) · [Workflow](./frontend-workflow.md)
@@ -77,11 +76,15 @@ Violating these rules is an architecture defect, not a code-style issue.
 | Build tool | Vite | 8.x (installed 8.3.8) | Fast dev server, native ESM, small config surface |
 | Styling | Tailwind CSS | 4.x (`@tailwindcss/vite`) | Utility-first, token-driven theming |
 | Component primitives | shadcn/ui | CLI 3.x | Source-owned Radix-based components, no runtime lock-in |
+| Radix packages | Dialog, Direction, Dropdown Menu, Slot, Tooltip | installed 2026-11-15 | Accessibility, focus management, and RTL support for the vendored primitives |
+| Theming | Small React provider + `.dark` class + CSS variables | implemented | Light/dark/system without `next-themes` |
+| UI language | Typed `fa`/`en` catalogs + `LanguageProvider` | implemented | Two shell locales, runtime direction switching; no i18n framework |
 | Routing | React Router | 7.x, **library mode** | SPA routing without framework/SSR mode |
 | Server state | TanStack Query | 5.x | Caching, retries, cancellation, invalidation |
 | Global client state | Zustand | 5.x, only when justified | Minimal store without boilerplate |
-| Forms | React Hook Form | 7.x | Uncontrolled form performance |
-| Validation | Zod | 4.x | Runtime validation of inputs **and** environment config |
+| Forms | React Hook Form | 7.66.0 | Uncontrolled form performance |
+| Validation | Zod | 4.6.7 | Runtime validation of inputs **and** environment config |
+| Form resolvers | `@hookform/resolvers` | 5.2.2 | Required peer pairing for Zod 4 + React Hook Form |
 | Icons | Lucide React | current 0.x | Consistent, tree-shakeable icon set |
 | Markdown | React Markdown | 10.x | Safe-by-default markdown (no raw HTML) |
 | Code highlighting | rehype-highlight + highlight.js | current | Needed for "code syntax highlighting"; lighter than a full highlighter renderer |
@@ -106,7 +109,7 @@ These are not feature libraries; they are required quality gates or mandatory pe
 | `@testing-library/dom` | Required peer of RTL 16 |
 | `@testing-library/jest-dom`, `@testing-library/user-event` | DOM assertions and realistic interaction |
 | `jsdom` | Vitest DOM environment |
-| shadcn transitive deps (`class-variance-authority`, `clsx`, `tailwind-merge`, Radix packages, `tw-animate-css`) | Added by the shadcn CLI; do not hand-roll equivalents |
+| shadcn transitive deps (`class-variance-authority`, `clsx`, `tailwind-merge`, Radix packages) | Required by the vendored primitives; do not hand-roll equivalents |
 | `openapi-typescript` (optional, later) | Contract type generation once the backend compiles and its OpenAPI document is stable |
 | `msw` (optional, dev-only) | Multi-request API simulation in tests; see testing standards |
 
@@ -119,7 +122,8 @@ Do not add these without a written decision in this document and user approval:
 | Axios | Native `fetch` plus a typed wrapper is sufficient |
 | Redux / Redux Toolkit | TanStack Query covers server state; Zustand covers the little client state left |
 | Next.js / Remix | The backend is ASP.NET Core; SSR adds deployment coupling for no current requirement |
-| i18next / react-intl | Single locale (Persian) initially; a typed message catalog is enough |
+| i18next / react-intl | The shell uses typed `fa`/`en` catalogs and needs no framework. Revisit only if locale count, plural rules, or message interpolation grow beyond a typed catalog |
+| Animation library (`tw-animate-css`, `framer-motion`) | Two Radix `data-state` keyframes cover dialog/sheet/overlay motion; `prefers-reduced-motion` is honored |
 | moment / date-fns | `Intl.DateTimeFormat` covers display; dates arrive as ISO 8601 |
 | lodash | Standard ES methods cover current needs |
 | styled-components / emotion | Tailwind + CSS variables |
@@ -142,9 +146,11 @@ Do not add these without a written decision in this document and user approval:
 - **RTL 16**: `@testing-library/dom` must be installed explicitly as a peer.
 - **Vitest and Vite**: current Vitest versions treat `vite` as a **required peer dependency**, not a bundled one, so a mismatched Vite copy breaks resolution. Install a Vitest major whose peer range includes the chosen Vite major and verify with `npm ls vite vitest`.
 - **shadcn/ui is not a dependency**: components are copied into `src/components/ui`. Treat them as owned source.
-- **Deferred feature libraries**: Zustand, React Hook Form, `@hookform/resolvers`, React Markdown, and rehype-highlight are approved but intentionally not installed until their first real use. Do not install them speculatively.
+- **Deferred feature libraries**: Zustand, React Markdown, and rehype-highlight are approved but intentionally not installed until their first real use. React Hook Form and `@hookform/resolvers` are installed because the login form now uses them. Do not install other deferred libraries speculatively.
 
 > **Verification (2026-11-15):** Dependencies are installed and pinned in `package-lock.json`: React 19.3.1, Vite 8.3.8, Vitest 5.1.0, Tailwind 4.3.5, TypeScript 5.9.3, React Router 7.18.5. `npm ls vite vitest` resolves a single `vite@8.3.8` for `vitest@5.1.0`. ESLint is held at 9.39.5 because the documented baseline and `eslint-plugin-jsx-a11y`'s peer range require it; npm marks that release unsupported upstream, and moving to ESLint 10 requires a plugin compatibility review, so it is deferred. Do not claim a different peer graph without re-running `npm ls`.
+>
+> **Radix and theming (2026-11-15):** `@radix-ui/react-dialog` 1.3.1, `@radix-ui/react-direction` 1.2.0, `@radix-ui/react-dropdown-menu` 2.2.1, `@radix-ui/react-slot` 1.5.0, and `@radix-ui/react-tooltip` 1.4.1 are direct dependencies. No animation or i18n library was added.
 
 ---
 
@@ -161,17 +167,20 @@ RagAssistantWebApp/
    └─ rag-assistant-ui/
       ├─ src/
       │  ├─ main.tsx            # bootstrap only
-      │  ├─ app/                # composition root: router, providers, error boundary
+      │  ├─ app/                # router, providers, error boundary, navigation, page title
+      │  ├─ api/                # http-client, ApiError, wire DTOs
+      │  ├─ auth/               # token store, JWT display decoding, session events
       │  ├─ components/
-      │  │  ├─ ui/              # shadcn-style primitives (owned source)
-      │  │  └─ shared/          # generic composed components
-      │  ├─ features/           # vertical feature modules (placeholders so far)
-      │  ├─ layouts/            # AppShell and future layouts
-      │  ├─ pages/              # app-level pages (home, not found, route error)
+      │  │  ├─ ui/              # button, input, card, dialog, dropdown-menu, tooltip, spinner, skeleton
+      │  │  └─ shared/          # empty-state, error-state, feature-placeholder, theme-menu, language-menu
+      │  ├─ features/           # vertical feature modules (auth implemented; four placeholders)
+      │  ├─ layouts/            # app-shell, sidebar, header, mobile-navigation, navigation-list
+      │  ├─ pages/              # home, design-system, route-loading, not-found, route-error
+      │  ├─ theme/              # ThemeProvider, useTheme
       │  ├─ lib/                # env validation, query client, cn()
-      │  ├─ i18n/               # Persian message catalog
-      │  ├─ styles/             # Tailwind entry and theme tokens
-      │  └─ test/               # setup and render helpers
+      │  ├─ i18n/               # fa/en catalogs, LanguageProvider, useLanguage
+      │  ├─ styles/             # Tailwind entry, semantic tokens, dark theme, motion
+      │  └─ test/               # setup (jsdom stubs), render helper, auth/API fixtures
       ├─ .env.example
       ├─ components.json        # shadcn CLI configuration
       ├─ eslint.config.js
@@ -180,7 +189,14 @@ RagAssistantWebApp/
       └─ package.json
 ```
 
-Planned additions (not created yet): `src/api/` (transport layer), per-feature `api/`, `components/`, `hooks/`, `schemas/`, and `types.ts`, `e2e/` with Playwright, and self-hosted font assets. Each feature currently contains only `routes/` and its `index.ts`; create the remaining slices when the first real use exists.
+Planned additions (not created yet): per-feature `api/`, `components/`, `hooks/`, `schemas/`, and `types.ts` slices for chat/documents/data-sources/settings, `e2e/` with Playwright, and self-hosted font assets. The `auth` feature is implemented with `components/`, `routes/`, `types.ts`, and its `index.ts`; `src/api/` and `src/auth/` now exist. Each remaining feature contains only `routes/` and its `index.ts`; create the remaining slices when the first real use exists. `src/pages/design-system-page.tsx` is a static reference and is not a product route.
+
+Authentication layering:
+
+- `src/api/http-client.ts` is the only transport. It owns the base URL, headers, timeout, abort composition, envelope parsing, `401` refresh orchestration, and `ApiError` creation.
+- `src/auth/` holds session primitives shared by transport and feature code: the in-memory access token + `sessionStorage` refresh token, JWT display decoding, and the session-expired event. It must not import from `src/features`.
+- `src/features/auth/` owns the auth endpoints (`auth-api.ts`), the React `AuthProvider`/`useAuth`, the login route, the account menu, and the `RequireAuth` guard.
+- `AuthLayout` mounts `AuthProvider` around both the public `/login` route and the protected subtree, so the state survives navigation between them.
 
 Rules:
 
@@ -240,7 +256,10 @@ Rules:
 - Only route elements and page-level hooks call data hooks. Presentational components receive data and callbacks via props.
 - Components never call `fetch` directly. All network access goes through the API layer (see §9).
 - Server data is read from TanStack Query at the route/page level and passed down; avoid every leaf subscribing to the same query.
-- Layout components (`AppShell`, `AuthLayout`) contain no business logic.
+- Layout components (`AppShell`, `Sidebar`, `Header`, `MobileNavigation`) contain no business logic.
+- Shared, domain-agnostic components live in `components/shared`: `EmptyState` (icon, title, description, action), `ErrorState` (`role="alert"` panel), `FeaturePlaceholder`, `ThemeMenu`, and `LanguageMenu`.
+- Vendored primitives live in `components/ui`: `Button`, `Input`, `Card`, `Dialog` (center and start-side sheet), `DropdownMenu`, `Tooltip`, `Spinner`, and `Skeleton`. They are composed, never forked per screen.
+- `pages/design-system-page.tsx` demonstrates every primitive in both themes and directions. It is the visual acceptance surface for the design system, not product functionality.
 - Split a component when it mixes concerns (data + form + presentation) or exceeds ~200 lines. Line count is a signal, not a target.
 - Prefer composition (`children`, render props) over boolean-prop configuration explosions.
 - Do not create a wrapper component that only forwards props.
@@ -251,10 +270,37 @@ Rules:
 
 React Router 7 in library mode, with `createBrowserRouter` and `RouterProvider`.
 
+**Implemented today:**
+
+| Path | Access | Purpose |
+|---|---|---|
+| `/login` | public | Credential form; shows a session-expired notice when a stored session could not be restored |
+| `/` | authenticated | Landing page; temporary, not the final product home |
+| `/chat` | authenticated | Honest "not implemented" placeholder |
+| `/documents` | authenticated | Honest "not implemented" placeholder |
+| `/data-sources` | authenticated | Honest "not implemented" placeholder |
+| `/settings` | authenticated | Honest "not implemented" placeholder |
+| `/design-system` | authenticated | Static primitive reference; not part of product navigation |
+| `*` | authenticated | Not found (unknown routes are guarded like every other route) |
+
+Every path except `/login` is rendered inside `RequireAuth`, which resolves the session before rendering the shell. The tree is:
+
+```text
+AuthLayout (AuthProvider)
+├─ /login                      → LoginPage
+└─ RequireAuth
+   └─ /                        → AppShell
+      ├─ index                 → HomePage
+      ├─ chat | documents | data-sources | settings | design-system (lazy)
+      └─ *                     → NotFoundPage
+```
+
+**Planned once contracts exist** (unchanged target):
+
 | Path | Access | Purpose | Backend readiness |
 |---|---|---|---|
 | `/` | public | Redirect to `/chat` | — |
-| `/login` | public | Sign in | Endpoint exists in source; backend does not compile |
+| `/login` | public | Sign in | Endpoint exists in source; API cannot start (JWT secret config) |
 | `/chat` | authenticated | New conversation | Blocked (see §13) |
 | `/chat/:conversationId` | authenticated | Existing conversation | Blocked |
 | `/documents` | authenticated | Document list and upload | Blocked |
@@ -270,13 +316,14 @@ React Router 7 in library mode, with `createBrowserRouter` and `RouterProvider`.
 Rules:
 
 - Use nested routes with a protected layout (`RequireAuth` renders `<Outlet />` after resolving the session).
-- Lazy-load every feature route: `lazy(() => import('...'))` with a Suspense fallback. Code-splitting per feature is mandatory.
+- Lazy-load every feature route with `route.lazy` and provide `hydrateFallbackElement`; the shared fallback is a labeled spinner (`pages/route-loading.tsx`). Code-splitting per feature is mandatory.
 - Do not lazy-load the shell or login route.
-- Guard behavior:
-  - Unauthenticated → redirect to `/login?returnTo=<internal-path>`.
-  - `returnTo` must be validated as a same-origin, absolute path starting with `/` and not `//`; otherwise ignore it. This prevents open redirects.
-  - After login, navigate to the validated `returnTo` or `/chat`.
-- `RequireAuth` shows a full-page skeleton while the session is resolving; it must not flash the login page.
+- Guard behavior (implemented):
+  - Unauthenticated → redirect to `/login?returnTo=<internal-path>` (pathname + search), using `replace`.
+  - `returnTo` is accepted only if it starts with `/`, does not start with `//`, is not the `/login` route, and contains no backslash or control characters; otherwise it is ignored. This prevents open redirects and a login redirect loop.
+  - After login, navigate to the validated `returnTo`, otherwise `/` (the planned `/chat` home does not exist yet).
+- `RequireAuth` shows a full-page labeled spinner while the session is being restored; it must not flash the login page or the shell.
+- An authenticated visitor of `/login` is redirected to the validated `returnTo` or `/`.
 - Permission/role-based menu items are a UX hint. The backend still enforces access; handle `401`/`403` responses with a safe UI state.
 - Keep filters, pagination, and selected source in URL search params, not in Zustand.
 - Configure `ScrollRestoration`; chat pages manage their own scroll position.
@@ -289,10 +336,11 @@ Rules:
 
 | State kind | Owner | Examples |
 |---|---|---|
-| Server state | TanStack Query | conversations, messages, documents, sources, settings, schema metadata |
-| Session state | React Context + module-level token holder | access token, refresh token handle, current user summary |
-| URL state | React Router search params | list filters, pagination, active source |
-| Form state | React Hook Form | login, change password, source configuration |
+| Server state | TanStack Query | conversations, messages, documents, sources, settings, schema metadata (no feature queries exist yet) |
+| Session state | React Context (`AuthProvider`) + module-level token holder (`src/auth/token-store.ts`) | access token in memory, refresh token in `sessionStorage`, current user summary decoded from the access token for display only; **implemented** |
+| UI preferences | React Context (`ThemeProvider`, `LanguageProvider`) + `localStorage` | `theme` (`light` \| `dark` \| `system`), `language` (`fa` \| `en`); non-sensitive, applied before first paint |
+| URL state | React Router search params | `returnTo` on `/login`; list filters, pagination, active source (future) |
+| Form state | React Hook Form + Zod resolver | login (implemented); change password and source configuration (future) |
 | Ephemeral UI state | Local `useState` | dialog open, composer text, copied state |
 | Cross-route client state | Zustand, only if it is needed in 3+ distant places and is not server state | sidebar collapse preference, onboarding dismissal |
 
@@ -304,6 +352,32 @@ Hard rules:
 4. **Clear sensitive caches on logout:** call `queryClient.clear()` and reset the session store. Never show one user's cached data to another.
 5. **No Redux.** No duplicate state copies (for example, messages in both a store and the query cache).
 6. Derived state is computed, not stored.
+7. Theme and language preferences are the only values persisted in `localStorage`; tokens and user data are never stored there.
+
+Theme and direction pipeline:
+
+```text
+localStorage / matchMedia  →  ThemeProvider (adds/removes .dark on <html>)
+localStorage               →  LanguageProvider (sets <html lang> and dir, serves typed `t`)
+language.dir               →  Radix DirectionProvider  →  primitives
+```
+
+- The inline bootstrap in `index.html` applies both preferences before first paint to avoid a flash.
+- Components read `t` from `useLanguage()`; they never import a catalog directly (the error boundary is the sole exception because it renders outside the providers and reads the applied `documentElement.lang`).
+
+Session pipeline (implemented):
+
+```text
+refresh token (sessionStorage)  →  AuthProvider restore effect  →  POST /api/auth/refresh
+access token (memory)           →  httpClient Authorization header  →  backend
+401 from a protected request    →  httpClient single-flight refresh  →  retry once
+refresh failure                 →  clear tokens → emit `session-expired` → AuthProvider → /login
+```
+
+- `src/auth/token-store.ts` is the only place tokens are read or written. The access token never leaves memory; the refresh token lives in `sessionStorage` (interim, see AD-07).
+- `src/auth/jwt.ts` decodes the access payload for display (`id`, `username`, `email`); failures degrade to nulls. Decoded values are never used for authorization.
+- `src/auth/session-events.ts` carries a single `session-expired` signal from the transport to `AuthProvider`, so a burst of failed requests produces one redirect.
+- `AuthProvider` exposes `{ status, user, login, logout }`; `status` is `restoring` when a refresh token exists at startup, so guards show a spinner rather than the login page.
 
 TanStack Query defaults (initial proposal; change only with a documented reason):
 
@@ -332,6 +406,7 @@ Component  →  feature data hook  →  TanStack Query  →  feature api module 
 - Components never import `httpClient` directly.
 - Feature API modules own endpoint paths, request shapes, and response parsing for that feature.
 - `src/api/http-client.ts` owns base URL, headers, cancellation, envelope parsing, and error normalization.
+- Implemented today: `src/api/http-client.ts`, `src/api/api-error.ts`, `src/api/types/auth.ts`, and the `src/features/auth` module (login page, `AuthProvider`, `RequireAuth`, `AuthLayout`, `UserMenu`, `auth-api` request helpers, `safe-return-to`). No other feature calls the API yet.
 - Query keys come from a typed key factory per feature:
 
 ```ts
@@ -358,7 +433,7 @@ Rules:
 
 Two levels:
 
-1. **Root boundary** (`app/error-boundary.tsx`): catches unexpected render/lifecycle errors, renders a Persian fallback with "reload" and "go home", and logs a redacted diagnostic.
+1. **Root boundary** (`app/error-boundary.tsx`): catches unexpected render/lifecycle errors, renders a bilingual fallback (chosen from the applied `<html lang>`) with "reload" and "go home", and logs a redacted diagnostic.
 2. **Route boundary** (router `errorElement` / per-route wrapper): isolates a failing module so the shell and navigation remain usable.
 
 Rules:
@@ -379,7 +454,7 @@ Configuration is read from `import.meta.env`, validated once at startup with Zod
 | Variable | Implemented | Default | Notes |
 |---|---|---|---|
 | `VITE_API_BASE_URL` | yes | `""` (same origin) | Empty string means same-origin `/api`; an absolute http(s) origin is allowed |
-| `VITE_APP_ENV` | yes | `development` | `development` \| `staging` \| `production`; shown in the shell footer and used to gate development-only UI |
+| `VITE_APP_ENV` | yes | `development` | `development` \| `staging` \| `production`; shown in the desktop sidebar footer |
 | `VITE_ENABLE_DEVTOOLS` | no | — | Not present in `src/lib/env.ts`; TanStack Query devtools are not installed yet |
 | `E2E_BASE_URL` | no | — | Reserved for Playwright config; Playwright is not installed yet |
 | `E2E_USERNAME` / `E2E_PASSWORD` | no | — | Reserved for E2E only, via an untracked `.env.e2e.local`; never committed |
@@ -421,9 +496,9 @@ flowchart LR
 
 Any module marked **Blocked** may have UI scaffolding only if it is clearly non-functional and not presented to users as working. Do not invent endpoints.
 
-| Module | Backend evidence (2026-11-15) | Frontend status |
+| Module | Backend evidence (2026-11-16) | Frontend status |
 |---|---|---|
-| Authentication | 5 routes exist in `AuthController`; backend does not compile at HEAD | Implementable after backend build is fixed and runtime-verified |
+| Authentication | 5 routes in `AuthController`; backend solution builds (`dotnet build` 0 errors) but the API cannot start until `Authentication:Jwt:SecretKey` is ≥ 32 chars; contracts are source-verified only | **Implemented** (login, session restore, logout, route guards, account menu); runtime verification against a live API still blocked |
 | Chat | `ChatController` exists but is syntactically invalid (duplicate actions, line 31); `ChatAboutFileAsync` always throws (`int.Parse("e")`); no streaming; no persistence endpoints | **Blocked** beyond static UI |
 | Conversation management | Tables `chat.ChatConversations`, `ChatMessages`, `ChatMessageSources` exist; no controller | **Blocked** |
 | Document upload | `IIndexingService`/`IRagService.UploadFile` exist internally; no HTTP endpoint | **Blocked** |
@@ -447,12 +522,14 @@ Blocked modules are not an excuse to fake data in production code. Prototype dat
 | AD-04 | TanStack Query is the only server-state cache | Decided | No duplicated API state in Zustand |
 | AD-05 | Zustand is opt-in, not default | Decided | Adds a dependency only when justified |
 | AD-06 | Single shared HTTP client based on `fetch` | Decided | One place for auth, cancellation, and envelope handling |
-| AD-07 | Access token in memory; refresh token in `sessionStorage` (interim) | Decided, awaiting backend cookie support | Survives reload per tab; XSS exposure remains; see security doc |
+| AD-07 | Access token in memory; refresh token in `sessionStorage` (interim) | Decided, implemented; backend cookie support still outstanding | Survives reload per tab; XSS exposure remains; see security doc |
 | AD-08 | Same-origin reverse proxy in production; Vite proxy in development | Decided | Avoids backend CORS changes; requires deployment configuration |
 | AD-09 | No direct infra access from the browser | Decided | Security boundary |
-| AD-10 | Persian-first, RTL-first UI | Decided | Logical CSS properties, Vazirmatn font |
+| AD-10 | Persian-first, bilingual (`fa`/`en`) UI shell | Decided, implemented | Typed catalogs, logical CSS, self-hosted Vazirmatn stack; RTL is the default, LTR is supported |
 | AD-11 | Exact dependency versions pinned in `package-lock.json` at scaffold | Decided | Reproducible builds |
 | AD-12 | No streaming implementation until a backend contract exists | Decided | UI may show non-streaming behavior only |
+| AD-13 | Radix-backed vendored primitives; no animation or i18n library | Decided | Accessibility and focus management come from Radix; motion is two CSS keyframes |
+| AD-14 | Persist only theme and language in `localStorage` | Decided | No sensitive data in browser storage; preferences apply before first paint |
 
 ---
 
@@ -461,7 +538,7 @@ Blocked modules are not an excuse to fake data in production code. Prototype dat
 - Offline-first behavior, service workers, or PWA installation.
 - Server-side rendering, static site generation, or edge rendering.
 - Multi-tenant theming or white-labeling.
-- Multiple UI languages (the architecture should not prevent it, but only Persian ships).
+- Additional locales beyond Persian and English, or an i18n framework (the typed `fa`/`en` catalog is sufficient for the shell).
 - Direct integration with SQL Server, Qdrant, Ollama, or model files.
 - Micro-frontends or runtime module federation.
 - A second state-management system alongside TanStack Query.

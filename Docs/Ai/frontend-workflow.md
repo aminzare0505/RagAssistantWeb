@@ -11,7 +11,7 @@
 
 This workflow keeps frontend work correct, reviewable, and honest about what was actually verified. It preserves the backend project's rules while adding frontend-specific gates.
 
-The application foundation now exists at `frontend/rag-assistant-ui/`; product features do not. Any feature work requires its own approval and a verified backend contract. See §12 for what the completed bootstrap did and did not include.
+The application foundation, the layout/design system, and the **authentication flow** now exist at `frontend/rag-assistant-ui/`; product features do not. Any further feature work requires its own approval and a verified backend contract. See §12 for what the completed tasks did and did not include.
 
 ---
 
@@ -119,7 +119,7 @@ Rules:
 - Do not disable lint rules to pass the gate.
 - Do not claim a build succeeded without executing it.
 - Record the exact commands and results in the task report.
-- The backend currently does not compile at `afd92ec`; until it does, real API and E2E verification is impossible. State this rather than mocking the backend and calling it verified.
+- The backend solution now **builds** (`dotnet build RagAssistant.Api.slnx` → 0 errors at 2026-11-16), but it **cannot start**: `Authentication:Jwt:SecretKey` is shorter than the required 32 characters, so `dotnet run` throws before listening. Real API and E2E verification therefore remain impossible. State this rather than mocking the backend and calling it verified.
 
 Database, Qdrant, Ollama, and model verification are backend concerns and are **never** performed from this repository.
 
@@ -220,7 +220,7 @@ Every completed task appends an entry to `Docs/Ai/CHANGELOG_AI.md`:
 
 **Build:** `<command>` — <result / not executed + reason>
 **Tests:** `<command>` — <passed/failed/skipped or not executed + reason>
-**E2E:** <result or "not executed: backend does not compile">
+**E2E:** <result or "not executed: no runnable backend">
 **Known issues / follow-ups:** <list or "none">
 ```
 
@@ -275,11 +275,59 @@ Completed:
 Deliberately not done:
 
 - Playwright and `npm run e2e` (no runnable backend, no integration path).
-- A theme provider/toggle (tokens and a `.dark` block exist, but no switch).
-- A backend health check (no usable endpoint; the home page states the API is unavailable instead).
 - Any `src/api/` transport, auth, storage, or session code.
 
+## 12.1 Layout and Design System Record
+
+Task 2 was approved and completed on 2026-11-15. It did not add product functionality.
+
+Completed:
+
+1. Responsive shell: fixed 288 px sidebar at `lg`, dialog-based start-side navigation sheet below `lg`, sticky header, content column offset with logical utilities, page-title resolution and `document.title`.
+2. Theme system: `ThemeProvider` with light/dark/system, `.dark` class, `matchMedia` listener, `localStorage` persistence, and a no-flash inline bootstrap.
+3. Bilingual shell: typed `fa`/`en` catalogs, `LanguageProvider`, `<html lang/dir>` updates, Radix `DirectionProvider`, and header language menu.
+4. Vendored primitives: Button, Input, Card, Dialog (center and start sheet), DropdownMenu, Tooltip, Spinner, Skeleton; shared EmptyState, ErrorState, FeaturePlaceholder.
+5. Static `/design-system` reference page demonstrating every primitive; navigable from the footer, not the product navigation.
+6. Tests expanded to 15 across 3 files (shell/navigation, theme and language persistence, design-system primitives), including Radix jsdom stubs.
+7. Browser verification at 360, 768, and 1440 px in `fa`/`en` and light/dark, with console and network checks; screenshots stored under `Docs/Ai/reviews/assets/2026-11-15-layout/`.
+8. Updated architecture, UI/UX, coding, testing, agent, and context documents plus `Docs/Ai/CHANGELOG_AI.md`.
+
+Deliberately not done:
+
+- Authentication, product screens, real data, API calls, or streaming.
+- A self-hosted Vazirmatn font (the stack still falls back to system fonts).
+- Playwright/E2E and feature-level tests (no runnable contract).
+- Server-side settings for theme/language; both are client-only preferences.
+
 Product modules must not be scaffolded before the backend contracts they need are verified.
+
+---
+
+## 12.2 Authentication Record
+
+Task 3 was approved and implemented on 2026-11-16. It added authentication only; no other product feature was built.
+
+Completed:
+
+1. Transport layer: `src/api/http-client.ts` (bearer header, 15 s timeout, abort composition, envelope parsing, status classification), `src/api/api-error.ts`, and `src/api/types/auth.ts` with a Zod schema for `JwtTokenResult`.
+2. Session primitives: `src/auth/token-store.ts` (access in memory, refresh in `sessionStorage`), `src/auth/jwt.ts` (display-only claim decoding), `src/auth/session-events.ts` (one expiry signal).
+3. `AuthProvider` with `status` (`restoring` / `authenticated` / `anonymous`), restore-on-load, login, logout, `queryClient.clear()`, and an expiry subscriber.
+4. Login page with React Hook Form + Zod, Persian/English copy, accessible field errors, password visibility toggle, expired-session notice, and safe `returnTo` handling. Includes `LoginShell` and `loginErrorMessage`.
+5. Route protection: `RequireAuth` (labeled spinner during restore), `AuthLayout` for the public login route, and redirects both ways between `/login` and the authenticated shell.
+6. Account menu in the header: identity from token claims (display only) and sign-out.
+7. Tests expanded from 15 to 48 across 9 files, including transport, provider, login, routing, JWT decoding, and `returnTo` validation.
+8. Gates executed: `typecheck`, `lint`, `test` (48 passed), `build` (succeeded).
+9. Documentation updated: architecture, API integration, security, testing, coding standards, workflow, `AGENTS.md`, `PROJECT_CONTEXT.md`, changelog, and a review report.
+
+Deliberately not done:
+
+- Register page — **the backend has no registration endpoint**.
+- Change-password and logout-all screens (endpoints exist, no UI yet).
+- Runtime integration verification against a live API: the backend builds but cannot start until `Authentication:Jwt:SecretKey` is ≥ 32 characters.
+- Playwright/E2E (still no runnable backend).
+- Screenshots: the browser tool could not capture them (viewport reported 0×0); interactions were verified through scripted DOM events instead.
+
+Known issue carried forward (not part of this task): feature placeholder pages still hardcode Persian copy, so English mode shows Persian feature text.
 
 ---
 

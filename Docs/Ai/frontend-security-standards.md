@@ -1,8 +1,8 @@
 # Frontend Security Standards — RAG Assistant
 
-> **Status:** Mandatory standards for the React application. The foundation exists but contains no auth, token storage, or network code yet.
-> **Backend baseline:** own JWT implementation in `RagAssistantApi` at commit `afd92ec` (source-inspected 2026-11-15). The backend does not compile at that commit, so no security behavior is runtime-verified.
-> **Last updated:** 2026-11-15
+> **Status:** Mandatory standards for the React application. The foundation, layout, design system, and the **authentication flow** exist: token storage, the HTTP client, login, session restore, logout, and route guards are implemented. No other feature performs network calls.
+> **Backend baseline:** own JWT implementation in `RagAssistantApi` at `afd92ec` plus an uncommitted working tree (source-inspected 2026-11-16). The solution builds, but the API cannot start until `Authentication:Jwt:SecretKey` is ≥ 32 characters, so no auth behavior is runtime-verified.
+> **Last updated:** 2026-11-16
 >
 > Related: [Architecture](./frontend-architecture.md) · [Coding standards](./frontend-coding-standards.md) · [API integration](./frontend-api-integration.md) · [Workflow](./frontend-workflow.md)
 
@@ -127,6 +127,8 @@ The backend rotates the security stamp and revokes refresh tokens on success. Th
 
 `localStorage` persists across tabs and browser restarts and is readable by any script that achieves XSS. A stolen refresh token permits 7 days of session takeover. `sessionStorage` reduces the window but is not XSS-proof.
 
+Permitted exception: the UI preferences `theme` (`light`/`dark`/`system`) and `language` (`fa`/`en`) are non-sensitive and may live in `localStorage`. They must never be combined with tokens, user data, or anything returned by the API.
+
 ### 4.3 Recommended backend change (not implemented)
 
 The secure long-term design is for the backend to set the refresh token in an **httpOnly, Secure, SameSite=Strict** cookie scoped to the auth endpoints, with the access token kept in memory. This requires backend changes and is out of scope here. Do not simulate it with JS cookies.
@@ -153,6 +155,17 @@ Clear all session state (memory tokens, refresh token, query cache, user summary
 - A `401` that survives one refresh attempt.
 - Application-level session invalidation from the backend (`401` due to security stamp rotation).
 
+### 4.6 Implemented storage (2026-11-16)
+
+`src/auth/token-store.ts` is the only module that reads or writes tokens:
+
+- Access token: module-level variable; never persisted. Lost on reload, which triggers the restore flow.
+- Refresh token: `sessionStorage` key `refresh_token`. `getItem`/`setItem`/`removeItem` are wrapped in `try/catch` so blocked storage degrades to a memory-only session for the tab instead of crashing.
+- `clearTokens()` nulls the access token and removes the refresh token. `AuthProvider` and the refresh failure path both call it.
+- Tests assert that `localStorage` stays empty after login and that the refresh token is present in `sessionStorage`. Global test cleanup calls `clearTokens()` and clears both storages between tests.
+
+Retained residual risk: `sessionStorage` is XSS-readable, and a duplicated tab can race the original on refresh (see §5). Refresh tokens remain interim until the backend offers httpOnly cookies.
+
 ---
 
 ## 5. Refresh Concurrency — Critical Backend Constraint
@@ -178,6 +191,13 @@ This section overrides convenience. A "clever" parallel refresh implementation w
 - Do not cache one user's data and reuse it after a different user signs in.
 - Do not expose administrative navigation to unauthenticated users; still expect `403` if they navigate directly.
 - Never bypass a guard by directly rendering a route component in a test-only path that ships.
+
+Implemented (2026-11-16):
+
+- `RequireAuth` wraps every product route. While the session is `restoring` it renders a labeled spinner; when `anonymous` it redirects to `/login?returnTo=<pathname+search>` with `replace`.
+- `safe-return-to.ts` accepts a `returnTo` only if it starts with `/`, does not start with `//`, is not the `/login` route itself, and contains no backslash or control characters. Anything else (absolute URLs, protocol-relative URLs, a login redirect loop) is discarded and the user lands on `/`. This blocks open redirects and a self-referential loop.
+- An authenticated visitor of `/login` is redirected to the validated `returnTo` or `/`.
+- The account menu shows identity decoded from the token for display only; it never gates an operation on claims.
 
 ---
 

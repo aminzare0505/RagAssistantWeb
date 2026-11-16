@@ -1,6 +1,6 @@
 # AGENTS.md — RagAssistantWebApp
 
-This repository contains the **React + TypeScript frontend** for the RAG Assistant. The application foundation exists at `frontend/rag-assistant-ui/`; product features (chat, documents, data sources, settings, authentication) are **not implemented**.
+This repository contains the **React + TypeScript frontend** for the RAG Assistant. The application foundation and the responsive layout/design system exist at `frontend/rag-assistant-ui/`; product features (chat, documents, data sources, settings, authentication) are **not implemented**.
 
 The backend is a separate ASP.NET Core project at `../RagAssistantApi`. Its rules remain authoritative for all backend work and must not be weakened.
 
@@ -123,7 +123,7 @@ Rules:
 - Distinguish tests written, executed, and passed.
 - State clearly when a command could not run and why.
 - Never claim integration verification against a mock.
-- The backend at commit `afd92ec` does not compile; real API/E2E verification is blocked until that is fixed. Do not pretend otherwise.
+- The backend solution builds at `afd92ec` plus an uncommitted tree, but the API cannot start: `Authentication:Jwt:SecretKey` is shorter than 32 characters. Real API/E2E verification is blocked until that is configured by the backend owner. Do not pretend otherwise.
 - Playwright is not installed yet and `npm run e2e` does not exist; add both only when a runnable integration path exists.
 
 Backend builds/tests belong to the backend repository and follow its guidelines.
@@ -151,12 +151,12 @@ If an independent reviewer is unavailable, say so. Do not claim an independent r
 
 ---
 
-## 8. Current Status (2026-11-15)
+## 8. Current Status (2026-11-16)
 
-- This repository: documentation plus the **frontend foundation** at `frontend/rag-assistant-ui/` (Vite, React 19, strict TypeScript, Tailwind 4, router, providers, env validation, Vitest). Only a home page and honest "not implemented" module placeholders exist.
-- Verified in the foundation task: `npm run typecheck`, `npm run lint`, `npm run test` (3 tests), and `npm run build` all pass. See `Docs/Ai/CHANGELOG_AI.md`.
-- Backend: unchanged, source-inspected at `afd92ec`; `dotnet build RagAssistant.Api.slnx` still fails with 1 error in `ChatController.cs`.
-- Only the auth endpoints are verified by source. Chat, documents, data sources, settings, streaming, and citations are **blocked** and must not be faked.
-- Next work (chat, documents, data sources, settings, authentication) requires explicit approval and remains blocked where backend contracts are missing.
+- This repository: documentation plus the **frontend foundation, layout/design system, and authentication** at `frontend/rag-assistant-ui/` (Vite, React 19, strict TypeScript, Tailwind 4, router, providers, env validation, Vitest, Radix primitives, light/dark/system themes, bilingual `fa`/`en` shell, responsive sidebar/header, a static `/design-system` page, login page, session restore, logout, and route guards). Non-auth product modules remain honest "not implemented" placeholders.
+- Verified in the authentication task: `npm run typecheck`, `npm run lint`, `npm run test` (**48 tests, 9 files**), and `npm run build` all pass. Browser interaction checks used scripted DOM events against the dev server with a mocked `fetch`; screenshots could not be captured (viewport unavailable). See `Docs/Ai/CHANGELOG_AI.md` and `Docs/Ai/reviews/2026-11-16-auth-ui-integration.md`.
+- Backend: **builds successfully** (`dotnet build RagAssistant.Api.slnx` → 0 errors) but **cannot start**: `Authentication:Jwt:SecretKey` is shorter than 32 characters, so no auth contract is runtime-verified; all contracts remain source-verified only. The backend working tree is dirty and was not modified from this repository.
+- Only the auth endpoints are verified by source; the frontend calls `login`, `refresh`, and `logout` only. There is **no registration endpoint**, so no register page exists. Chat, documents, data sources, settings, streaming, and citations are **blocked** and must not be faked.
+- Next work (product features) requires explicit approval and remains blocked where backend contracts are missing. Known issue: feature placeholder pages still hardcode Persian copy, so English mode shows Persian feature text.
 
 See `PROJECT_CONTEXT.md` for evidence and open questions.

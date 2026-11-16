@@ -1,0 +1,178 @@
+export const fa = {
+  appName: 'دستیار اسناد',
+  appTagline: 'پاسخ‌های مستند از اسناد شما',
+  skipToContent: 'پرش به محتوای اصلی',
+  primaryNavigation: 'ناوبری اصلی',
+  nav: {
+    home: 'خانه',
+    chat: 'گفتگو',
+    documents: 'اسناد',
+    dataSources: 'منابع داده',
+    settings: 'تنظیمات',
+  },
+  header: {
+    openMenu: 'باز کردن منوی ناوبری',
+    closeMenu: 'بستن منوی ناوبری',
+    theme: 'پوسته',
+    themeToggle: 'تغییر پوسته',
+    themeLight: 'روشن',
+    themeDark: 'تیره',
+    themeSystem: 'همراه با سیستم',
+    language: 'زبان',
+    languageToggle: 'تغییر زبان',
+    languageFa: 'فارسی',
+    languageEn: 'English',
+  },
+  auth: {
+    signInTitle: 'ورود به حساب',
+    signInDescription: 'برای ادامه، نام کاربری و گذرواژهٔ خود را وارد کنید.',
+    usernameLabel: 'نام کاربری',
+    usernamePlaceholder: 'نام کاربری خود را وارد کنید',
+    passwordLabel: 'گذرواژه',
+    passwordPlaceholder: 'گذرواژهٔ خود را وارد کنید',
+    showPassword: 'نمایش گذرواژه',
+    hidePassword: 'پنهان‌کردن گذرواژه',
+    submit: 'ورود',
+    submitting: 'در حال ورود…',
+    restoringSession: 'در حال بازیابی نشست…',
+    sessionExpiredTitle: 'نشست شما پایان یافت',
+    sessionExpiredDescription: 'برای ادامه دوباره وارد شوید.',
+    accountMenu: 'منوی حساب کاربری',
+    signedInAs: 'واردشده به‌عنوان',
+    accountFallback: 'حساب کاربری',
+    logout: 'خروج از حساب',
+    errors: {
+      usernameRequired: 'نام کاربری را وارد کنید.',
+      passwordRequired: 'گذرواژه را وارد کنید.',
+      invalidCredentials: 'نام کاربری یا گذرواژه نادرست است.',
+      network: 'ارتباط با سرور برقرار نشد. اتصال خود را بررسی کنید و دوباره تلاش کنید.',
+      validation: 'اطلاعات واردشده معتبر نیست. ورودی‌ها را بررسی کنید.',
+      server: 'سرور در حال حاضر پاسخ نمی‌دهد. کمی بعد دوباره تلاش کنید.',
+      unexpected: 'ورود انجام نشد. دوباره تلاش کنید.',
+    },
+  },
+  home: {
+    eyebrow: 'فاز ۳ — ورود و نشست',
+    title: 'ورود و مدیریت نشست فعال شد',
+    description:
+      'احراز هویت با نقاط پایانی موجود سرور پیاده‌سازی شده است: ورود، خروج، بازیابی نشست و محافظت از مسیرها. قابلیت‌های گفتگو، مدیریت اسناد، منابع داده و تنظیمات همچنان به قراردادهای سرور نیاز دارند.',
+    statusTitle: 'آنچه در این مرحله راه‌اندازی شده است',
+    statusItems: [
+      {
+        title: 'React و TypeScript سخت‌گیرانه',
+        detail: 'برنامه با Vite ساخته می‌شود و بررسی نوع در حالت strict اجرا می‌شود.',
+      },
+      {
+        title: 'مسیریابی و چیدمان پایه',
+        detail: 'مسیرهای اصلی با React Router تعریف شده‌اند و چیدمان مشترک آماده است.',
+      },
+      {
+        title: 'پیکربندی محیط',
+        detail: 'نشانی API و محیط اجرا در زمان راه‌اندازی اعتبارسنجی می‌شوند.',
+      },
+      {
+        title: 'ورود و مدیریت نشست',
+        detail: 'ورود، خروج، تازه‌سازی نشانه و مسیرهای محافظت‌شده با قرارداد موجود سرور پیاده‌سازی شده‌اند.',
+      },
+      {
+        title: 'آزمون و کیفیت کد',
+        detail: 'Vitest، Testing Library، ESLint و Prettier پیکربندی شده‌اند.',
+      },
+    ],
+    backendTitle: 'اتصال به سرور فقط برای احراز هویت',
+    backendDescription:
+      'این نسخه فقط نقاط پایانی احراز هویت را فراخوانی می‌کند. گفتگو، اسناد، منابع داده و تنظیمات همچنان قرارداد ندارند و داده‌ای نمایش نمی‌دهند.',
+    apiBaseLabel: 'نشانی پایهٔ API',
+    sameOrigin: 'همان مبدأ (same-origin)',
+    environmentLabel: 'محیط اجرا',
+  },
+  features: {
+    unavailableTitle: 'این بخش هنوز فعال نیست',
+    unavailableNote:
+      'این بخش هنوز پیاده‌سازی نشده است و در حال حاضر هیچ داده یا عملکرد واقعی ندارد.',
+    chat: {
+      description:
+        'فضای گفتگو با تاریخچه، نمایش پاسخ‌های Markdown و ارجاع به منابع، پس از آماده‌شدن قرارداد سرور ساخته می‌شود.',
+    },
+    documents: {
+      description:
+        'بارگذاری و پیگیری وضعیت پردازش اسناد، پس از افزودن نقطهٔ پایانی بارگذاری در سرور ساخته می‌شود.',
+    },
+    dataSources: {
+      description:
+        'فهرست منابع داده و مرور طرح‌وارهٔ جداول، پس از تعریف قراردادهای مربوط در سرور ساخته می‌شود.',
+    },
+    settings: {
+      description:
+        'تنظیمات مدل، بازیابی و تعبیه به پشتیبانی سرور نیاز دارند؛ ترجیحات ظاهری در مراحل بعدی اضافه می‌شوند.',
+    },
+  },
+  notFound: {
+    title: 'صفحه پیدا نشد',
+    description: 'نشانی واردشده وجود ندارد یا جابه‌جا شده است.',
+  },
+  errors: {
+    unexpectedTitle: 'خطای غیرمنتظره',
+    unexpectedDescription: 'مشکلی در نمایش برنامه رخ داد. صفحه را دوباره بارگذاری کنید.',
+    routeTitle: 'بارگذاری این صفحه ممکن نشد',
+    routeDescription: 'مشکلی در مسیر درخواستی رخ داد. می‌توانید به صفحهٔ اصلی بازگردید.',
+  },
+  actions: {
+    reload: 'بارگذاری دوباره',
+    goHome: 'بازگشت به خانه',
+    retry: 'تلاش دوباره',
+    close: 'بستن',
+  },
+  loading: {
+    generic: 'در حال بارگذاری…',
+  },
+  footer: {
+    note: 'نسخهٔ پایه — بدون اتصال به سرویس هوش مصنوعی',
+    designSystem: 'راهنمای طراحی',
+  },
+  designSystem: {
+    title: 'راهنمای طراحی',
+    description:
+      'مرجعی برای اجزای مشترک رابط کاربری. این صفحه ایستا است و بخشی از ناوبری محصول نیست.',
+    notice: 'این صفحه فقط برای بررسی ظاهر و رفتار اجزای مشترک است و داده یا عملکرد محصول ندارد.',
+    buttonsTitle: 'دکمه‌ها',
+    buttonsDescription: 'گونه‌های دکمه با اندازهٔ یکسان و حالت غیرفعال.',
+    buttonDefault: 'دکمهٔ اصلی',
+    buttonSecondary: 'دکمهٔ ثانویه',
+    buttonOutline: 'دکمهٔ حاشیه‌دار',
+    buttonGhost: 'دکمهٔ شفاف',
+    buttonDestructive: 'دکمهٔ حذف',
+    buttonDisabled: 'غیرفعال',
+    buttonIcon: 'دکمهٔ شمایل',
+    formTitle: 'ورودی‌ها',
+    formDescription: 'ورودی متنی با برچسب، راهنما و حالت خطا.',
+    inputLabel: 'نام نمایشی',
+    inputPlaceholder: 'مثلاً تیم پشتیبانی',
+    inputHelp: 'این نام فقط برای نمایش در برنامه استفاده می‌شود.',
+    inputInvalidLabel: 'شناسهٔ نامعتبر',
+    inputInvalidMessage: 'این مقدار معتبر نیست.',
+    overlaysTitle: 'لایه‌های رویی',
+    overlaysDescription: 'دیالوگ، منوی بازشو و راهنمای شمایل‌ها.',
+    openDialog: 'باز کردن دیالوگ',
+    dialogTitle: 'نمونهٔ دیالوگ',
+    dialogDescription: 'این دیالوگ هیچ داده‌ای ذخیره نمی‌کند و فقط برای بررسی ظاهر است.',
+    dialogConfirm: 'تأیید',
+    dialogCancel: 'انصراف',
+    tooltipLabel: 'نگه‌داشتن نشانگر',
+    tooltipContent: 'این یک راهنمای کوتاه است.',
+    dropdownLabel: 'منوی نمونه',
+    dropdownItemOne: 'گزینهٔ یک',
+    dropdownItemTwo: 'گزینهٔ دو',
+    feedbackTitle: 'حالت‌های بازخورد',
+    feedbackDescription: 'حالت بارگذاری، خالی و خطا.',
+    emptyTitle: 'هنوز موردی ثبت نشده است',
+    emptyDescription: 'پس از افزودن اولین مورد، اینجا نمایش داده می‌شود.',
+    emptyAction: 'افزودن مورد',
+    errorTitle: 'دریافت اطلاعات ممکن نشد',
+    errorDescription: 'ارتباط برقرار نشد. اتصال خود را بررسی کنید و دوباره تلاش کنید.',
+    errorAction: 'تلاش دوباره',
+    loadingLabel: 'در حال بارگذاری…',
+  },
+};
+
+export type Messages = typeof fa;

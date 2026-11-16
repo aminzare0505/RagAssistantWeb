@@ -1,10 +1,10 @@
 # PROJECT_CONTEXT.md — RagAssistantWebApp
 
 > **Purpose:** Give any AI agent or developer the verified state of this repository and its backend dependency without re-exploring everything.
-> **Generated / verified:** 2026-11-15
-> **This repository:** documentation plus a **frontend foundation** at `frontend/rag-assistant-ui/`. No product feature (auth, chat, documents, data sources, settings) is implemented.
-> **Backend baseline:** `../RagAssistantApi` at commit `afd92ec` (`Chat Method`), branch `main`, working tree clean at inspection.
-> **Backend build:** `dotnet build RagAssistant.Api.slnx` → **1 error, 31 warnings**. The solution does not compile.
+> **Generated / verified:** 2026-11-16
+> **This repository:** documentation plus the **frontend foundation, layout/design system, and authentication** at `frontend/rag-assistant-ui/`. No other product feature (chat, documents, data sources, settings) is implemented.
+> **Backend baseline:** `../RagAssistantApi` at commit `afd92ec` (`Chat Method`), branch `main`. **The working tree is dirty** at inspection on 2026-11-16; the backend was read only and not modified from this repository.
+> **Backend build:** `dotnet build RagAssistant.Api.slnx` → **succeeds, 0 errors**. **Runtime is blocked:** `dotnet run` throws `Authentication:Jwt:SecretKey must be at least 32 characters` before listening.
 > **Instruction precedence:** `AGENTS.md` and `Docs/Ai/*` govern work. This file is a map; read the source before changing it.
 
 ---
@@ -35,35 +35,44 @@ Documentation created on 2026-11-15:
 | `Docs/Ai/frontend-workflow.md` | Created |
 | `Docs/Ai/CHANGELOG_AI.md` | Created |
 
-Frontend foundation created on 2026-11-15 (verified by executed commands — see §1.1):
+Frontend foundation, layout/design system, and authentication (2026-11-15 / 2026-11-16, verified by executed commands — see §1.1):
 
 | Area | Present |
 |---|---|
-| Build | `package.json`, `package-lock.json`, `vite.config.ts`, three `tsconfig*.json`, `index.html` |
+| Build | `package.json`, `package-lock.json`, `vite.config.ts`, three `tsconfig*.json`, `index.html` with no-flash theme/language bootstrap |
 | Quality | `eslint.config.js`, `.prettierrc.json`, `.prettierignore`, `.gitignore`, `.env.example` |
-| App shell | `src/main.tsx`, `src/app/*` (router, providers, error boundary), `src/layouts/app-shell.tsx` |
-| Pages/routes | Home, 404, route error, and four honest placeholder feature routes |
-| Styling | Tailwind CSS 4 stylesheet with design tokens; RTL (`lang="fa" dir="rtl"`) |
-| Tests | Vitest + RTL setup and three router tests |
-| Not present | `src/api/`, auth/session, HTTP client, `e2e/`, Playwright, TanStack devtools, Zustand, React Hook Form, React Markdown |
+| App shell | `src/main.tsx`, `src/app/*` (router, providers, navigation, page title, error boundary), `src/layouts/*` (app shell, sidebar, header, mobile navigation sheet, navigation list) |
+| Pages/routes | Login, home, static `/design-system` reference, route-loading fallback, 404, route error, and four honest placeholder feature routes |
+| Design system | Semantic tokens (including sidebar tokens), light/dark themes, Radix-backed primitives in `src/components/ui`, shared `EmptyState`/`ErrorState` |
+| Internationalization | Typed `fa`/`en` catalogs, `LanguageProvider`, `<html lang/dir>` switching, Radix `DirectionProvider` |
+| Transport | `src/api/http-client.ts` (bearer, timeout, abort, envelope parsing, single-flight refresh), `src/api/api-error.ts`, `src/api/types/*` |
+| Session | `src/auth/token-store.ts` (access in memory, refresh in `sessionStorage`), `src/auth/jwt.ts` (display-only decoding), `src/auth/session-events.ts` |
+| Auth feature | `src/features/auth/*`: `AuthProvider`, `RequireAuth`, `AuthLayout`, login page + schema + error mapping, safe `returnTo`, account `UserMenu` |
+| Tests | Vitest + RTL harness with Radix jsdom stubs, session seeding, fetch stub helpers; 48 tests in 9 files |
+| Not present | `e2e/`, Playwright, TanStack devtools, Zustand, React Markdown, self-hosted font files, change-password/logout-all UI |
 
-**Do not claim any product feature is implemented.** The foundation renders an app shell, navigation, and placeholder pages only; no backend call is made anywhere.
+**Do not claim any product feature beyond authentication is implemented.** The application renders a responsive shell, navigation, a design-system reference, and placeholder pages; the only backend calls are `login`, `refresh`, and `logout`.
 
-### 1.1 Verified commands and results (2026-11-15)
+### 1.1 Verified commands and results (latest run 2026-11-16)
 
 Run from `frontend/rag-assistant-ui/` with portable Node 24.22.3 / npm 11.19.1:
 
 | Command | Result |
 |---|---|
-| `npm install` | Succeeded; 373 packages added; `package-lock.json` written |
-| `npm run typecheck` (`tsc -b`) | Passed, no errors |
-| `npm run lint` (`eslint .`) | Passed, no findings |
-| `npm run test` (`vitest run`) | 3/3 tests passed |
-| `npm run build` (`tsc -b && vite build`) | Succeeded; CSS 21.92 kB, JS 466.93 kB (145.35 kB gzip) |
-| Dev server + browser check | RTL, active nav, lazy routes, deep links, and 404 verified; no console errors; no horizontal overflow at 526 px |
-| `npm audit --omit=dev` | **Not verified** (timed out; no result observed) |
+| `npm install` (foundation) | Succeeded; 373 packages added; `package-lock.json` written |
+| `npm install` after layout dependencies | Succeeded; Radix dialog/direction/dropdown-menu/slot/tooltip added |
+| `npm install react-hook-form @hookform/resolvers` | Succeeded; `react-hook-form@7.66.0`, `@hookform/resolvers@5.2.2` (Zod 4 compatible) |
+| `npm run typecheck` (`tsc -b`) | Passed, no errors (latest run 2026-11-16) |
+| `npm run lint` (`eslint .`) | Passed, no findings (latest run 2026-11-16) |
+| `npm run test` (`vitest run`) | **48/48 tests passed in 9 files** (latest run 2026-11-16) |
+| `npm run build` (`tsc -b && vite build`) | Succeeded; CSS 33.40 kB, main JS 646.91 kB (203.37 kB gzip); one chunk >500 kB advisory |
+| Browser check (2026-11-15 layout task) | 360, 768, and 1440 px verified in Persian/English and light/dark; no console errors; no horizontal overflow |
+| Browser check (2026-11-16 auth task) | Scripted DOM interaction against the dev server with a mocked `fetch`: guard redirect, empty-field validation, invalid credentials, successful login + `returnTo`, session restore (real 502 failure path and a stubbed success path), logout, account menu, theme and language switches. **Screenshots not captured** — the browser tool reported an unavailable viewport (0×0) |
+| `npm audit --omit=dev` | **0 production vulnerabilities** |
+| `npm audit` (full tree) | 7 moderate, all dev-only (`typescript-eslint` → `minimatch`, GHSA-g3hv-75wg-m249); not auto-fixed because the fix downgrades tooling |
+| `npm run e2e` | Not available; Playwright is not installed and no runnable backend exists |
 
-Not executed: Playwright/E2E (not installed), real API calls (backend does not compile).
+Screenshots from the layout task: `Docs/Ai/reviews/assets/2026-11-15-layout/`. No screenshots exist for the authentication task.
 
 ### 1.2 Folder-name note
 
@@ -110,45 +119,44 @@ The pre-existing empty directory was `Docs/AI`. It has been normalized to `Docs/
 | Swagger | Development only at `/swagger` | Verified (`Program.cs`) |
 | Dev URLs | `http://localhost:5000`, `https://localhost:7189`, IIS `http://localhost:37177` | Verified (`launchSettings.json`) |
 | Test project | `RagAssistant.Tests` (xUnit 2.9.2, NSubstitute) | Verified (project file) |
-| Test execution | Not run; the solution does not build | Verified (build attempt) |
+| Test execution | Not run; the API cannot start and backend tests were out of scope | Verified (run attempt) |
 
-### 3.2 Build state — blocker
+### 3.2 Build and runtime state
 
 ```text
-dotnet build RagAssistant.Api.slnx
-→ 31 Warning(s), 1 Error(s)
-→ RagAssistant.Api\Controllers\ChatController.cs(31,77): error CS1525: Invalid expression term ')'
+dotnet build RagAssistant.Api.slnx -v m
+→ Build succeeded, 0 Warning(s), 0 Error(s)        (2026-11-16, dirty working tree)
+
+dotnet run
+→ InvalidOperationException: Authentication:Jwt:SecretKey must be at least 32 characters.
+→ no process listening on 5000 / 7189 / 37177
 ```
 
-Additional verified defects in the chat path:
+The build blocker (`ChatController.cs:31`) recorded on 2026-11-15 is **resolved in the uncommitted working tree**. The uncommitted tree also modifies `ChatController`, `Program`, the project file, `appsettings`, `ZareAssistantContext`, and backend docs, and adds `Utility/ConfigurationExtensions.cs`. Because the tree is dirty and moving, treat the chat path as **unverified**: this repository did not re-inspect its runtime behavior and does not modify it.
 
-- `ChatController` declares two actions with the same route and signature (`[HttpPost("Chat")]` twice).
-- `RagService.ChatAboutFileAsync` still contains demo/debug code: it inserts a `SiteUser` with a plaintext password and executes `int.Parse("e")`, which throws every time.
-- No streaming, no citations in the response, no conversation persistence endpoint.
-
-Consequence: **no endpoint is runtime-verified**. Auth contracts are verified by source only.
+Consequence: **no endpoint is runtime-verified**. Auth contracts are verified by source only. The backend cannot start until the JWT secret is configured, which is a backend/owner task and must not be done from this repository.
 
 ### 3.3 HTTP surface (source-verified)
 
 | Method | Route | Auth | Status |
 |---|---|---|---|
-| POST | `/api/auth/login` | Anonymous | Verified source; returns 204 on invalid credentials |
-| POST | `/api/auth/refresh` | Anonymous | Verified source |
-| POST | `/api/auth/logout` | Anonymous (refresh token in body) | Verified source |
-| POST | `/api/auth/logout-all` | `[Authorize]` | Verified source |
-| POST | `/api/auth/change-password` | `[Authorize]` | Verified source |
-| POST | `/api/Chat/Chat` | None declared | **Invalid source; unusable** |
+| POST | `/api/auth/login` | Anonymous | Verified source; returns 204 on invalid credentials; **called by the login page** |
+| POST | `/api/auth/refresh` | Anonymous | Verified source; **called by session restore and the 401 handler** |
+| POST | `/api/auth/logout` | Anonymous (refresh token in body) | Verified source; **called on sign-out** |
+| POST | `/api/auth/logout-all` | `[Authorize]` | Verified source; no UI |
+| POST | `/api/auth/change-password` | `[Authorize]` | Verified source; no UI |
+| POST | `/api/Chat/Chat` | None declared | Unverified; unusable |
 | GET/DELETE | `/api/test/*` | Mixed/incomplete | Demo only; must not be used |
 | GET | `/WeatherForecast` | Anonymous | Template leftover |
 
 No endpoints exist for:
 
+- Registration (`/api/auth/register`), password reset, MFA, or `/me`.
 - Conversations (list, create, rename, delete).
 - Documents (upload, list, details, delete, status).
 - Data sources (list, configure, schema, permissions).
 - Settings (model, retrieval, embedding, preferences).
 - Streaming, SSE, SignalR, hubs.
-- Current user (`/me`).
 
 ### 3.4 Response envelope
 
@@ -181,7 +189,7 @@ The frontend must decide success from HTTP status plus `isSuccess`, never from t
 
 ## 4. Frontend Architecture
 
-Foundation exists at `frontend/rag-assistant-ui/`; product modules do not. Items below are the decided architecture, with implementation status marked.
+Foundation, layout/design system, and authentication exist at `frontend/rag-assistant-ui/`; other product modules do not. Items below are the decided architecture, with implementation status marked.
 
 ### 4.1 Technology decisions
 
@@ -191,12 +199,15 @@ Foundation exists at `frontend/rag-assistant-ui/`; product modules do not. Items
 | Language | TypeScript strict | 5.9.3 | Implemented |
 | Build | Vite 8.x | 8.3.8 | Implemented |
 | Styling | Tailwind CSS 4.x via `@tailwindcss/vite` | 4.3.5 | Implemented |
-| Components | shadcn/ui (vendored) | local `Button` only | Partially implemented (one primitive) |
+| Components | shadcn/ui (vendored) | local primitives | Implemented: Button, Input, Card, Dialog, DropdownMenu, Tooltip, Spinner, Skeleton |
+| Component primitives | Radix UI | dialog 1.3.1, direction 1.2.0, dropdown-menu 2.2.1, slot 1.5.0, tooltip 1.4.1 | Implemented |
+| Theming | Light/dark/system provider + `.dark` class + tokens | local implementation | Implemented |
 | Routing | React Router 7.x, library mode | 7.18.5 | Implemented |
-| Server state | TanStack Query 5.x | 5.107.1 | Provider installed; no queries yet |
+| Server state | TanStack Query 5.x | 5.107.1 | Provider installed; no server query yet |
 | Client state | Zustand only when justified | — | Deferred until justified |
-| Forms | React Hook Form 7.x | — | Deferred until the first real form |
-| Validation | Zod 4.x | 4.6.7 | Implemented (environment schema) |
+| UI preferences | React Context + `localStorage` (`theme`, `language`) | local implementation | Implemented; non-sensitive values only |
+| Forms | React Hook Form 7.x | 7.66.0 | Implemented for login |
+| Validation | Zod 4.x + `@hookform/resolvers` | 4.6.7 / 5.2.2 | Implemented (env schema, login schema, token schema) |
 | Icons | Lucide React | 1.73.0 | Implemented |
 | Markdown | React Markdown 10.x (no raw HTML) | — | Deferred until chat exists |
 | Code highlighting | rehype-highlight | — | Deferred until chat exists |
@@ -204,7 +215,7 @@ Foundation exists at `frontend/rag-assistant-ui/`; product modules do not. Items
 | Component tests | React Testing Library 16.x | 16.3.3 | Implemented |
 | E2E | Playwright | — | Deferred until an integration path exists |
 | Package manager | npm | 11.19.1 | Implemented |
-| Language/locale | Persian-first, RTL | — | Implemented |
+| Language/locale | Persian-first, bilingual `fa`/`en` shell | — | Implemented (runtime direction switching) |
 
 Versions are pinned in `frontend/rag-assistant-ui/package-lock.json` with caret ranges in `package.json`. A single `vite@8.3.8` satisfies Vitest's peer requirement (Vitest 5.x requires Vite as a peer); ESLint is held at 9.39.5 line. Deferred libraries are intentionally not installed to avoid unused dependencies; they must be added only when a feature needs them, under the approved stack.
 
@@ -213,19 +224,24 @@ Node: the toolchain was resolved on 2026-11-15 with a portable Node 24.22.3 LTS 
 ### 4.2 Structural decisions
 
 - Independent SPA, separately deployable; no shared code with the backend.
-- Feature-based modules: `auth`, `chat`, `documents`, `data-sources`, `settings`.
-- API access only through a typed client layer; no `fetch` in components.
-- Access token in memory; refresh token in `sessionStorage` as an interim measure.
+- Feature-based modules: `auth` (implemented), `chat`, `documents`, `data-sources`, `settings` (placeholders).
+- API access only through a typed client layer; no `fetch` in components. Implemented in `src/api/http-client.ts`.
+- Access token in memory; refresh token in `sessionStorage` as an interim measure. Implemented in `src/auth/token-store.ts`.
+- Single-flight refresh, retried once on 401; refresh itself is never retried. Implemented.
+- Route protection via `RequireAuth` with a restoring spinner and safe `returnTo`. Implemented.
 - Same-origin reverse proxy in production; Vite `/api` proxy in development (required because the backend has no CORS).
 - No streaming implementation until a backend contract exists.
 - Persian-first design with logical CSS properties and self-hosted Vazirmatn.
+- Bilingual shell (`fa`/`en`) with runtime direction switching; light/dark/system themes persisted outside React and applied before first paint.
+- Responsive shell: fixed sidebar at `lg`, navigation sheet below `lg`, sticky header, content capped at `max-w-6xl`.
+- Static `/design-system` reference page for primitives, states, and both themes/directions; it is not product navigation.
 - No direct SQL Server, Qdrant, Ollama, or model access.
 
 ### 4.3 Planned module status
 
 | Module | Plan | Current status |
 |---|---|---|
-| Authentication | Login, refresh, logout, logout-all, change password | Implementable after the backend builds and is runtime-verified |
+| Authentication | Login, refresh, logout, protected routes; logout-all and change password when UI exists | **Implemented**: login, session restore, logout, guards, account menu. No register page (no backend endpoint). Runtime verification blocked by backend startup |
 | Chat | Conversations, messages, markdown, code, citations, stop, regenerate | **Blocked** |
 | Documents | Upload, progress, status, list, delete, details | **Blocked** |
 | Data sources | Config, schema, permissions, source selection | **Blocked** |
@@ -242,13 +258,15 @@ Node: the toolchain was resolved on 2026-11-15 with a portable Node 24.22.3 LTS 
 | AD-03 | Feature-based architecture with public feature APIs | Feature folders exist with `index.ts`; import boundaries not yet enforced by lint | Import boundaries must be enforced |
 | AD-04 | TanStack Query owns server state | Provider only | No duplicated API state |
 | AD-05 | Zustand opt-in | Not installed | Must be justified per use |
-| AD-06 | Single `fetch`-based HTTP client | Not implemented | Central auth/cancellation/envelope handling |
-| AD-07 | Access token in memory; refresh token in `sessionStorage` (interim) | Not implemented | Residual XSS exposure; backend cookie recommended |
+| AD-06 | Single `fetch`-based HTTP client | Implemented (`src/api/http-client.ts`) | Central auth/cancellation/envelope handling |
+| AD-07 | Access token in memory; refresh token in `sessionStorage` (interim) | Implemented | Residual XSS exposure; backend cookie recommended |
 | AD-08 | Same-origin proxy in production | Vite dev proxy configured | No CORS change in development |
 | AD-09 | No direct infrastructure access | Yes (no such dependency exists) | Security boundary |
-| AD-10 | Persian-first RTL | Yes; font stack prefers Vazirmatn but font files are not bundled yet | Logical CSS, self-hosted font |
+| AD-10 | Persian-first, bilingual (`fa`/`en`) RTL/LTR shell | Yes; font stack prefers Vazirmatn but font files are not bundled yet | Logical CSS, runtime direction switch |
 | AD-11 | Versions pinned in `package-lock.json` at scaffold | Yes | Reproducible builds |
 | AD-12 | No streaming until a contract exists | Yes | Chat is not real-time |
+| AD-13 | Radix-backed vendored primitives; no animation/i18n library | Yes | Accessible overlays and menus; two CSS keyframes |
+| AD-14 | Persist only `theme` and `language` in `localStorage` | Yes | No sensitive data in browser storage |
 
 ---
 
@@ -263,9 +281,10 @@ Node: the toolchain was resolved on 2026-11-15 with a portable Node 24.22.3 LTS 
 7. No CORS: development uses the Vite proxy; production must be same-origin.
 8. No streaming, no SignalR, no SSE.
 9. No conversation, document, source, or settings endpoints.
-10. No `/me` endpoint; identity display requires decoding the token (untrusted, display-only).
-11. The backend does not compile at the inspected commit.
+10. No `/me` endpoint; identity display requires decoding the token (untrusted, display-only). Implemented that way.
+11. The backend builds but cannot start until `Authentication:Jwt:SecretKey` is ≥ 32 characters; it is not configured from this repository.
 12. Persian text and RTL are first-class; mixed Latin/code content must render correctly.
+13. No registration endpoint exists; do not add a register page.
 
 ---
 
@@ -273,11 +292,12 @@ Node: the toolchain was resolved on 2026-11-15 with a portable Node 24.22.3 LTS 
 
 | Item | Status |
 |---|---|
-| Runtime behavior of any endpoint | Unverified (backend does not build) |
+| Runtime behavior of any endpoint | Unverified (backend cannot start: JWT secret < 32 chars) |
+| Login/refresh/logout against a live API | Unverified; covered only by unit/component tests with a stubbed `fetch` |
 | Exact serialized role claim name | Unverified (`ClaimTypes.Role` may be mapped to `role`) |
 | Live database schema vs EF model | Unverified |
 | Qdrant/Ollama connectivity and model availability | Unverified |
-| Chat request/response contract | Unknown (intended shape exists, but unusable) |
+| Chat request/response contract | Unknown (intended shape exists; source is dirty and unverified) |
 | Streaming protocol | Not designed |
 | Citation payload | Not designed |
 | Conversation persistence contract | Not implemented |
@@ -290,23 +310,29 @@ Node: the toolchain was resolved on 2026-11-15 with a portable Node 24.22.3 LTS 
 | CORS policy | Not implemented |
 | Rate limiting | Not implemented |
 | Local Node/npm toolchain | Resolved locally on 2026-11-15 via portable Node 24.22.3 / npm 11.19.1 (not on system `PATH`); behaves correctly for `npm install`, gates, and build |
-| `npm audit` result | Unverified: the command timed out; no vulnerability report was observed |
-| Browser verification at desktop/tablet widths | Not exercised: browser checks were performed at a 526 px viewport only |
+| Production bundle size | Main JS chunk 646.91 kB (203.37 kB gzip) triggers Vite's >500 kB advisory; acceptable now, revisit when feature code grows |
+| Self-hosted font | Not bundled; the Vazirmatn stack falls back to `Segoe UI`/`Tahoma` |
+| Real API/browser integration | Unverified; the backend cannot start |
+| Authentication screenshots | Not produced; the browser tool reported an unavailable viewport |
+| English feature copy | **Known defect:** feature placeholder pages hardcode Persian strings, so English mode shows Persian feature text |
 
 ---
 
 ## 8. Conflicts and Missing Information
 
-1. **Backend build failure** — `ChatController.cs:31`; blocks all runtime integration.
-2. **Backend `PROJECT_CONTEXT.md` is stale** — it reports missing `Qdrant`, `Ollama`, and `Embedding` sections; those sections now exist in `appsettings.json`. It also predates the test project and `ChatController`.
-3. **Backend context says "no test project"** — `RagAssistant.Tests` now exists (commit `06caa1a`), but cannot run until the build is fixed.
-4. **Envelope vs HTTP status** — clients cannot rely on HTTP status alone; the `statusCode` field is also unreliable.
-5. **Identity mapping** — `Authentication.Users.Id` and `usr.SiteUser.Id` are not connected in code; conversation ownership is undefined.
-6. **Repo layout assumption** — the task style assumes a monorepo (`agent.md`, `PROJECT_CONTEXT.md` at the root, `Docs/Ai/`). In reality the backend is a separate repository. This repository has its own `AGENTS.md` and `PROJECT_CONTEXT.md`; the backend's instructions are preserved by reference and were not modified.
-7. **`agent.md` vs `AGENTS.md`** — only `AGENTS.md` is used; no `agent.md` was created.
-8. **No CORS** — cross-origin development without the proxy will fail in the browser.
-9. **Plaintext password column** — `usr.SiteUser.Password` exists in the model; the frontend must never request or display it.
-10. **Demo endpoints** — `/api/test/*` are not product contracts.
+1. **Backend runtime blocked** — the solution builds, but `Authentication:Jwt:SecretKey` is < 32 characters; blocks all runtime integration.
+2. **Backend working tree is dirty** — modified `ChatController`, `Program`, project file, `appsettings`, `ZareAssistantContext`, and docs; untracked `Utility/ConfigurationExtensions.cs` and `Docs/Ai/reviews/`. Contract inspection is therefore a moving target; re-verify before any chat/document work.
+3. **Backend `PROJECT_CONTEXT.md` is stale** — it reports missing `Qdrant`, `Ollama`, and `Embedding` sections; those sections exist in `appsettings.json`. It also predates the test project and `ChatController`.
+4. **Backend context says "no test project"** — `RagAssistant.Tests` now exists, but the API cannot start and the tests were not run from this repository.
+5. **Envelope vs HTTP status** — clients cannot rely on HTTP status alone; the `statusCode` field is also unreliable. The client handles this and ignores body `statusCode`.
+6. **Identity mapping** — `Authentication.Users.Id` and `usr.SiteUser.Id` are not connected in code; conversation ownership is undefined.
+7. **Repo layout assumption** — the task style assumes a monorepo (`agent.md`, `PROJECT_CONTEXT.md` at the root, `Docs/Ai/`). In reality the backend is a separate repository. This repository has its own `AGENTS.md` and `PROJECT_CONTEXT.md`; the backend's instructions are preserved by reference and were not modified.
+8. **`agent.md` vs `AGENTS.md`** — only `AGENTS.md` is used; no `agent.md` was created.
+9. **No CORS** — cross-origin development without the proxy will fail in the browser.
+10. **Plaintext password column** — `usr.SiteUser.Password` exists in the model; the frontend must never request or display it.
+11. **Demo endpoints** — `/api/test/*` are not product contracts.
+12. **No registration endpoint** — requirement 2 of the auth task is satisfied by not building a register page.
+13. **English feature copy defect** — placeholder pages import the `fa` catalog directly; English mode shows Persian feature text. Pre-existing, outside the auth task, recorded as a follow-up.
 
 ---
 
@@ -331,17 +357,18 @@ Node: the toolchain was resolved on 2026-11-15 with a portable Node 24.22.3 LTS 
 
 ## 10. Recommended Next Steps
 
-1. **Backend (blocking):** fix `ChatController` so the solution builds; then run `dotnet test`.
+1. **Backend (blocking runtime):** configure `Authentication:Jwt:SecretKey` with ≥ 32 characters (owner action; do not invent or commit a secret), then start the API and run `dotnet test`.
 2. **Backend:** standardize the error contract (real HTTP statuses, correct envelope `statusCode`, JSON error shape).
 3. **Backend:** decide and document the chat streaming contract and citation payload.
 4. **Backend:** add conversation, document, data source, and settings endpoints with authorization and ownership checks.
 5. **Backend:** add `/me` or another verified identity endpoint.
 6. **Both:** confirm the deployment model (same-origin proxy vs CORS).
-7. **Frontend foundation (done, awaiting approval for the next step):** Vite + React + TypeScript, ESLint/Prettier, Vitest/RTL, Tailwind, routing, env validation, providers, app shell, and placeholder routes.
-8. **Frontend (needs approval):** add the HTTP client, `ApiResponse<T>` envelope handling, and the auth session lifecycle against the source-verified auth contracts; verify in a browser once the backend builds.
-9. **Frontend (needs approval):** add Playwright and the first E2E smoke path when a runnable backend exists.
-10. **Frontend:** add Vazirmatn as a self-hosted asset (licence-compatible) and remove the font's network dependency.
-11. **Frontend:** implement features in dependency order once their contracts are verified.
+7. **Frontend (done):** foundation, layout/design system, and authentication against source-verified contracts.
+8. **Frontend (needs approval):** run the authentication flow against a live backend once it starts, then add Playwright and the first E2E smoke path.
+9. **Frontend:** add Vazirmatn as a self-hosted asset (licence-compatible) and remove the font fallback.
+10. **Frontend:** split the main bundle once feature code lands (the 646 kB chunk advisory is the only build warning).
+11. **Frontend:** fix the English feature copy defect (placeholder pages import the `fa` catalog directly).
+12. **Frontend:** implement features in dependency order once their contracts are verified.
 
 Do not implement product features before the relevant contracts are verified and the step is approved. Do not treat mocks as integration verification.
 
@@ -359,9 +386,24 @@ Do not implement product features before the relevant contracts are verified and
 | Verified endpoints and DTOs | `Docs/Ai/frontend-api-integration.md` |
 | Task process and reporting | `Docs/Ai/frontend-workflow.md` |
 | Foundation review report | `Docs/Ai/reviews/2026-11-15-frontend-foundation.md` |
+| Layout/design-system review report | `Docs/Ai/reviews/2026-11-15-layout-design-system.md` |
+| Authentication review report | `Docs/Ai/reviews/2026-11-16-auth-ui-integration.md` |
+| Verification screenshots (layout) | `Docs/Ai/reviews/assets/2026-11-15-layout/` |
 | Frontend app root | `frontend/rag-assistant-ui/` |
 | Frontend env validation | `frontend/rag-assistant-ui/src/lib/env.ts` |
 | Frontend route table | `frontend/rag-assistant-ui/src/app/router.tsx` |
+| HTTP client | `frontend/rag-assistant-ui/src/api/http-client.ts` |
+| API error model | `frontend/rag-assistant-ui/src/api/api-error.ts` |
+| Auth wire types | `frontend/rag-assistant-ui/src/api/types/auth.ts` |
+| Token store | `frontend/rag-assistant-ui/src/auth/token-store.ts` |
+| JWT display decoding | `frontend/rag-assistant-ui/src/auth/jwt.ts` |
+| Session expiry events | `frontend/rag-assistant-ui/src/auth/session-events.ts` |
+| Auth provider and guard | `frontend/rag-assistant-ui/src/features/auth/` |
+| Login page | `frontend/rag-assistant-ui/src/features/auth/routes/login-page.tsx` |
+| Shell and navigation | `frontend/rag-assistant-ui/src/layouts/` |
+| Theme provider | `frontend/rag-assistant-ui/src/theme/theme-provider.tsx` |
+| Language provider and catalogs | `frontend/rag-assistant-ui/src/i18n/` |
+| Design-system reference | `frontend/rag-assistant-ui/src/pages/design-system-page.tsx` |
 | Frontend test harness | `frontend/rag-assistant-ui/src/test/render-app.tsx` |
 | Backend instructions (authoritative for backend) | `../RagAssistantApi/AGENTS.md` |
 | Backend context (note staleness) | `../RagAssistantApi/Docs/Ai/PROJECT_CONTEXT.md` |
