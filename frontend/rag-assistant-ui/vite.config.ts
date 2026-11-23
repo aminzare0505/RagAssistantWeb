@@ -13,10 +13,13 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // Required because the backend has no CORS policy.
+      // Required because the backend has no CORS policy. The backend's local
+      // HTTPS profile uses a development certificate, so skip certificate
+      // validation only for this localhost development proxy.
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'https://localhost:7189',
         changeOrigin: true,
+        secure: false,
       },
     },
   },

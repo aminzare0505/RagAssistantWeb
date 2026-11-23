@@ -19,7 +19,7 @@ describe('application shell', () => {
     expect(document.title).toBe(`${fa.nav.home} — ${fa.appName}`);
   });
 
-  it('navigates to a module that is explicitly marked as not implemented', async () => {
+  it('navigates to the documents module with search and upload controls', async () => {
     const user = userEvent.setup();
     renderApp();
 
@@ -28,8 +28,24 @@ describe('application shell', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: fa.nav.documents }),
     ).toBeInTheDocument();
-    expect(screen.getByText(fa.features.unavailableTitle)).toBeInTheDocument();
+    expect(screen.getByLabelText(fa.documents.searchLabel)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: new RegExp(fa.documents.dropPrompt) }),
+    ).toBeInTheDocument();
     expect(document.title).toBe(`${fa.nav.documents} — ${fa.appName}`);
+  });
+
+  it('navigates to the data sources preview', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.click(screen.getByRole('link', { name: fa.nav.dataSources }));
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: fa.nav.dataSources }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(fa.dataSources.previewNotice)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: fa.dataSources.addSource })).toBeInTheDocument();
   });
 
   it('renders the not-found page for an unknown route', () => {

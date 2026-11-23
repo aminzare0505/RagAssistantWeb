@@ -1,6 +1,10 @@
 import type { AuthUser } from './types';
 
-const EMPTY_USER: AuthUser = { id: null, username: null, email: null };
+const EMPTY_USER: AuthUser = { id: null, username: null, email: null, roles: [] };
+
+// ClaimTypes.Role is serialized as `role` by JwtSecurityTokenHandler, but the
+// full URI is accepted too because the backend maps it explicitly.
+const ROLE_CLAIMS = ['role', 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
 
 function decodeBase64Url(segment: string): string {
   const base64 = segment.replace(/-/g, '+').replace(/_/g, '/');
@@ -21,6 +25,24 @@ function readClaim(claims: Record<string, unknown>, name: string): string | null
     return first ?? null;
   }
   return null;
+}
+
+function readClaimValues(claims: Record<string, unknown>, names: string[]): string[] {
+  const values: string[] = [];
+
+  for (const name of names) {
+    const value = claims[name];
+
+    if (typeof value === 'string' && value.length > 0) {
+      values.push(value);
+    } else if (Array.isArray(value)) {
+      values.push(
+        ...value.filter((item): item is string => typeof item === 'string' && item.length > 0),
+      );
+    }
+  }
+
+  return [...new Set(values)];
 }
 
 /**
@@ -47,6 +69,7 @@ export function decodeAccessToken(token: string): AuthUser {
       id: readClaim(claims, 'UserId'),
       username: readClaim(claims, 'preferred_username'),
       email: readClaim(claims, 'useremail'),
+      roles: readClaimValues(claims, ROLE_CLAIMS),
     };
   } catch {
     return EMPTY_USER;

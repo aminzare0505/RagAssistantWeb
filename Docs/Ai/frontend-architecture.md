@@ -1,10 +1,10 @@
 # Frontend Architecture — RAG Assistant
 
-> **Status:** Foundation, the application layout/design system, **authentication**, and a **mock-data chat UI preview** are implemented; documents, data sources, and settings are not. The React application lives at `frontend/rag-assistant-ui/` and contains the responsive shell, navigation, header, light/dark themes, a bilingual (Persian/English) RTL-LTR shell, reusable UI primitives, an HTTP client with envelope/error handling, a single-flight refresh session, a responsive chat interface, and tests. The chat page makes **no network calls**: its conversations, messages, and sources are isolated mock data, and real chat integration remains blocked on the backend contract.
+> **Status:** Foundation, the application layout/design system, **authentication**, and **chat, documents, data-sources, and settings UI previews** are implemented. The React application lives at `frontend/rag-assistant-ui/` and contains the responsive shell, navigation, header, light/dark themes, a bilingual (Persian/English) RTL-LTR shell, reusable UI primitives, an HTTP client with envelope/error handling, a single-flight refresh session, a development-only preview admin sign-in for reviewing authenticated pages, responsive preview interfaces for all four product modules, and tests. Only the authentication pages make network calls; chat, documents, data sources, and settings use isolated mock data, and real integration remains blocked on the backend contracts.
 >
-> **Backend baseline:** `RagAssistantApi` (ASP.NET Core 8), source-inspected on 2026-11-16 at commit `afd92ec` with an uncommitted working tree. `dotnet build RagAssistant.Api.slnx` now **succeeds** (0 errors), but the API cannot start: it fails its own JWT option validation (`Authentication:Jwt:SecretKey` is shorter than 32 characters), and no documented port is listening. All auth contracts are **source-verified, not runtime-verified**.
+> **Backend baseline:** `RagAssistantApi` (ASP.NET Core 8), source-inspected on 2026-11-16 at commit `afd92ec` with an uncommitted working tree. A prior `dotnet run` attempt on 2026-11-17 failed JWT option validation. On 2026-11-22, the HTTPS Swagger UI and OpenAPI document returned HTTP 200, and a GET to POST-only `/api/auth/login` through Vite returned HTTP 405. This confirms HTTPS/proxy reachability only; login and token behavior remain unverified.
 >
-> **Last updated:** 2026-11-16
+> **Last updated:** 2026-11-22
 >
 > **Related documents:**
 > [Coding standards](./frontend-coding-standards.md) · [Security standards](./frontend-security-standards.md) · [Testing standards](./frontend-testing-standards.md) · [UI/UX guidelines](./frontend-ui-ux-guidelines.md) · [API integration](./frontend-api-integration.md) · [Workflow](./frontend-workflow.md)
@@ -171,9 +171,9 @@ RagAssistantWebApp/
       │  ├─ api/                # http-client, ApiError, wire DTOs
       │  ├─ auth/               # token store, JWT display decoding, session events
       │  ├─ components/
-      │  │  ├─ ui/              # button, input, card, dialog, dropdown-menu, tooltip, spinner, skeleton
-      │  │  └─ shared/          # empty-state, error-state, feature-placeholder, theme-menu, language-menu
-      │  ├─ features/           # vertical feature modules (auth implemented; chat preview; three placeholders)
+      │  │  ├─ ui/              # button, input, card, dialog, dropdown-menu, tooltip, spinner, skeleton, progress, badge, select
+      │  │  └─ shared/          # empty-state, error-state, preview-state-control, theme-menu, language-menu
+      │  ├─ features/           # vertical feature modules (auth implemented; chat, documents, data-sources, settings previews)
       │  ├─ layouts/            # app-shell, sidebar, header, mobile-navigation, navigation-list
       │  ├─ pages/              # home, design-system, route-loading, not-found, route-error
       │  ├─ theme/              # ThemeProvider, useTheme
@@ -189,7 +189,7 @@ RagAssistantWebApp/
       └─ package.json
 ```
 
-Planned additions (not created yet): per-feature `api/`, `schemas/`, and `types.ts` slices for documents/data-sources/settings, real chat `api/` and `schemas/` slices, `e2e/` with Playwright, and self-hosted font assets. The `auth` feature is implemented with `components/`, `routes/`, `types.ts`, and its `index.ts`. The `chat` feature currently has `components/`, `hooks/`, `lib/`, `mock/`, `routes/`, `types.ts`, and `index.ts`; it has **no** `api/` or `schemas/` slice because no chat contract exists. Each remaining feature contains only `routes/` and its `index.ts`. `src/pages/design-system-page.tsx` is a static reference and is not a product route.
+Planned additions (not created yet): per-feature `api/`, `schemas/`, and wire DTOs for documents/data-sources/settings, real chat `api/` and `schemas/` slices, `e2e/` with Playwright, and self-hosted font assets. The `auth` feature is implemented with `components/`, `preview/`, `routes/`, `types.ts`, and its `index.ts`. The `chat` feature currently has `components/`, `hooks/`, `lib/`, `mock/`, `routes/`, `types.ts`, and `index.ts`; it has **no** `api/` or `schemas/` slice because no chat contract exists. The `documents` feature has `components/`, `hooks/`, `lib/`, `mock/`, `routes/`, `types.ts`, and `index.ts`, also with **no** `api/` or `schemas/` slice because no documents contract exists. The `data-sources` feature has `components/`, `hooks/`, `lib/`, `mock/`, `routes/`, `types.ts`, and `index.ts`; the `settings` feature has `components/`, `hooks/`, `lib/`, `mock/`, `routes/`, `types.ts`, and `index.ts`. Both are previews with no `api/` slice. `src/lib/format-date.ts` holds the shared locale-cached date formatter, and `src/components/shared/preview-state-control.tsx` is the shared DEV-only ready/loading/error switch. `src/pages/design-system-page.tsx` is a static reference and is not a product route.
 
 Authentication layering:
 
@@ -198,6 +198,13 @@ Authentication layering:
 - `src/features/auth/` owns the auth endpoints (`auth-api.ts`), the React `AuthProvider`/`useAuth`, the login route, the account menu, and the `RequireAuth` guard.
 - `AuthLayout` mounts `AuthProvider` around both the public `/login` route and the protected subtree, so the state survives navigation between them.
 
+Development preview sign-in (temporary until the API can start):
+
+- `src/features/auth/preview/preview-admin-session.ts` holds a fixed `admin` identity with the `Admin` role. It issues no token and calls nothing; the only state is a `sessionStorage` marker (`preview_admin_session`).
+- Every function begins with an `import.meta.env.DEV` guard, so production builds return `null`/`throw` before touching storage and a hand-written marker does not authenticate. The login card is rendered only when `import.meta.env.DEV` and the provider supplied `previewLogin`; the constant folds away in production, and the marker key and preview identity are absent from `dist`.
+- `AuthProvider` treats the marker as an authenticated session at startup and on remount, and `logout`/session-expiry clear it. Roles decoded from a real access token (`role` or the `ClaimTypes.Role` URI) are displayed in the account menu; neither roles nor permissions gate any UI.
+- This is **not** authentication and must not be described as such. Delete the preview module when real sign-in is usable; the real flow (`login`, `refresh`, `logout`) is unchanged.
+
 Chat preview layering (temporary until a contract exists):
 
 - `src/features/chat/mock/` is the only source of conversations, messages, replies, and sources. It is deliberately isolated, imports nothing from the API layer, and has a header comment instructing removal when the contract lands.
@@ -205,6 +212,33 @@ Chat preview layering (temporary until a contract exists):
 - `src/features/chat/lib/` holds feature-local, non-React helpers (clipboard, locale-aware formatting).
 - Components receive data and callbacks as props; only the page composes the hook. No component calls `fetch`.
 - The page renders a persistent preview banner. Do not remove it while the mock layer exists.
+
+Documents preview layering (temporary until a contract exists):
+
+- `src/features/documents/mock/` is the only source of records. `mock-documents.ts` builds eleven deterministic records; `document-preview-store.ts` is a module-scoped singleton with `subscribe`/`getDocuments`/`addDocument`/`removeDocument` (plus reset helpers for tests) so the list and the details route observe the same data and deletions survive navigation; `preview-upload.ts` only schedules a cancellable timer. The mock layer imports nothing from the API layer and every file carries a delete-when-the-contract-exists header.
+- `src/features/documents/hooks/use-documents-query.ts` owns the query contract: it maps `q`, `status`, `type`, `sort`, `page`, and `size` to URL search params (defaults omitted, `replace` writes) and resets the page when a filter, sort, or size changes.
+- `src/features/documents/hooks/use-documents-preview.ts` subscribes to the store with `useSyncExternalStore` and derives the visible page through the pure helpers in `lib/query.ts`. A DEV-only preview-state flag produces the loading and error surfaces; the control component is stripped from production builds, so those states are unreachable there (the state plumbing itself is not guaranteed to be tree-shaken).
+- `src/features/documents/hooks/use-document-upload.ts` owns the upload queue: synchronous validation via `lib/validation.ts`, a simulated indeterminate phase, and per-row cancellations cleared on removal and unmount.
+- `src/features/documents/lib/` holds pure helpers: validation, query parse/serialize/filter/sort/paginate, and locale-aware formatting. No React imports.
+- `src/features/documents/types.ts` documents preview view models, not wire DTOs. Real documents integration replaces the whole mock layer with TanStack Query hooks and an `api/` slice.
+- The page renders a persistent preview banner plus upload, details, and status-source notices. Do not remove them while the mock layer exists.
+
+Data-sources preview layering (temporary until a contract exists):
+
+- `src/features/data-sources/mock/` is the only source of records, schema trees, and statuses. `data-source-preview-store.ts` is a module-scoped singleton with `subscribe`/`getDataSources`/add/update/remove plus reset helpers, so the list, details, and form routes agree and an edit survives navigation. Every file carries a delete-when-the-contract-exists header.
+- `src/features/data-sources/types.ts` documents preview view models, not wire DTOs. `DataSourceRecord` has `hasCredential: boolean` and **no** credential field; the form's `password` never leaves `lib/validation.ts`'s payload builders.
+- `src/features/data-sources/lib/validation.ts` owns the Zod create/edit schemas and payload builders. `lib/announcement.ts` carries a one-shot message to the destination page's live region.
+- `src/features/data-sources/hooks/use-data-sources.ts` subscribes with `useSyncExternalStore` and holds the DEV-only preview state.
+- The list, form, and details pages render a preview badge/notice; the connection-test button is permanently disabled with a visible reason and the schema browser is labelled as example data. Do not remove these while the mock layer exists.
+
+Settings preview layering (temporary until a contract exists):
+
+- `src/features/settings/lib/settings-defaults.ts` holds source-verified defaults with file citations (Ollama, `qwen2.5-coder:7b`, timeout 10 s; chunk 300, overlap 50, top-K 5). `lib/settings-schema.ts` holds the AI and retrieval Zod schemas.
+- `src/features/settings/mock/settings-draft-store.ts` is a module-scoped session-only draft store; `hooks/use-settings-drafts.ts` subscribes with `useSyncExternalStore`. Nothing is written to storage.
+- Appearance uses the existing `ThemeProvider`/`LanguageProvider` (the only settings that truly persist). General is read-only session/build information. Embedding is read-only and never renders model paths, endpoints, or keys. Similarity threshold is rendered disabled because the backend does not implement it.
+- Each server-backed section renders a preview badge/notice stating that saving is session-only and the server configuration is unchanged. Do not remove them while no settings contract exists.
+
+**URL-owned query state:** list state lives in the URL rather than component state, so a reload, a shared link, and back/forward all restore the same search, filter, sort, page, and page size. This is the pattern to reuse for any future list feature; do not duplicate it in `useState`.
 
 Rules:
 
@@ -237,7 +271,7 @@ src/features/chat/
 
 Features: `auth`, `chat`, `documents`, `data-sources`, `settings`.
 
-The tree above is the target shape for a contract-backed feature. The implemented `chat` slice intentionally omits `api/` and `schemas/` and adds `mock/` and `lib/` while it is a preview; do not treat the presence of `mock/` as a production pattern.
+The tree above is the target shape for a contract-backed feature. The implemented `chat` and `documents` slices intentionally omit `api/` and `schemas/` and add `mock/` and `lib/` while they are previews; do not treat the presence of `mock/` as a production pattern.
 
 Boundary rules:
 
@@ -267,9 +301,10 @@ Rules:
 - Components never call `fetch` directly. All network access goes through the API layer (see §9).
 - Server data is read from TanStack Query at the route/page level and passed down; avoid every leaf subscribing to the same query.
 - Layout components (`AppShell`, `Sidebar`, `Header`, `MobileNavigation`) contain no business logic.
-- Shared, domain-agnostic components live in `components/shared`: `EmptyState` (icon, title, description, action), `ErrorState` (`role="alert"` panel), `FeaturePlaceholder`, `ThemeMenu`, and `LanguageMenu`.
+- Shared, domain-agnostic components live in `components/shared`: `EmptyState` (icon, title, description, action), `ErrorState` (`role="alert"` panel), `PreviewStateControl` (DEV-only ready/loading/error switch), `ThemeMenu`, and `LanguageMenu`.
 - Vendored primitives live in `components/ui`: `Button`, `Input`, `Card`, `Dialog` (center and start-side sheet), `DropdownMenu`, `Tooltip`, `Spinner`, and `Skeleton`. They are composed, never forked per screen.
 - Chat feature components (`features/chat/components/`) split into: `ConversationHistory` (new/search/select/delete), `ChatMessageList` (log container, auto-scroll, generating indicator), `ChatMessageItem` (roles, timestamps, actions), `MarkdownMessage` + `CodeBlock` + `CopyButton`, `MessageSources`, `ChatComposer`, and `ChatEmptyState`. They are composed by `ChatPage`; only that page reads the preview hook.
+- Documents feature components (`features/documents/components/`) split into: `DocumentUpload` (drop button + hidden picker + live status region), `UploadFileRow` (validating/uploading/done/error row), `DocumentToolbar` (search and selects), `DocumentList` + `DocumentRow`, `DocumentStatusBadge`, `DocumentDeleteDialog`, `DocumentPagination`, `DocumentsLoading`, `PreviewStateControl` (DEV only), and `DocumentDetails`. `DocumentsPage` and `DocumentDetailsPage` compose them and are the only files that read the preview hooks.
 - `pages/design-system-page.tsx` demonstrates every primitive in both themes and directions. It is the visual acceptance surface for the design system, not product functionality.
 - Split a component when it mixes concerns (data + form + presentation) or exceeds ~200 lines. Line count is a signal, not a target.
 - Prefer composition (`children`, render props) over boolean-prop configuration explosions.
@@ -288,9 +323,14 @@ React Router 7 in library mode, with `createBrowserRouter` and `RouterProvider`.
 | `/login` | public | Credential form; shows a session-expired notice when a stored session could not be restored |
 | `/` | authenticated | Landing page; temporary, not the final product home |
 | `/chat` | authenticated | Chat UI **preview** backed by isolated mock data; no network calls |
-| `/documents` | authenticated | Honest "not implemented" placeholder |
-| `/data-sources` | authenticated | Honest "not implemented" placeholder |
-| `/settings` | authenticated | Honest "not implemented" placeholder |
+| `/documents` | authenticated | Documents UI **preview**: list, search/filter/sort/pagination, upload; no network calls |
+| `/documents/:documentId` | authenticated | Document details **preview**; an unknown id renders an in-shell not-found state |
+| `/data-sources` | authenticated | Data sources **preview**: list, statuses, last sync, add action; no network calls |
+| `/data-sources/new` | authenticated | Add form **preview** (create mode); no network calls |
+| `/data-sources/:sourceId` | authenticated | Source details **preview** with connection metadata and example schema tree; unknown id renders an in-shell not-found state |
+| `/data-sources/:sourceId/edit` | authenticated | Edit form **preview**; blank password keeps the preview credential flag |
+| `/settings` | authenticated | Settings **preview**: General (default) plus section navigation |
+| `/settings/:section` | authenticated | Appearance, AI model, Embedding, or Retrieval section; an unknown section renders an in-shell not-found state |
 | `/design-system` | authenticated | Static primitive reference; not part of product navigation |
 | `*` | authenticated | Not found (unknown routes are guarded like every other route) |
 
@@ -302,7 +342,9 @@ AuthLayout (AuthProvider)
 └─ RequireAuth
    └─ /                        → AppShell
       ├─ index                 → HomePage
-      ├─ chat | documents | data-sources | settings | design-system (lazy)
+      ├─ chat | documents | documents/:documentId
+      │  data-sources | data-sources/new | data-sources/:sourceId | data-sources/:sourceId/edit
+      │  settings | settings/:section | design-system (lazy)
       └─ *                     → NotFoundPage
 ```
 
@@ -311,17 +353,17 @@ AuthLayout (AuthProvider)
 | Path | Access | Purpose | Backend readiness |
 |---|---|---|---|
 | `/` | public | Redirect to `/chat` | — |
-| `/login` | public | Sign in | Endpoint exists in source; API cannot start (JWT secret config) |
+| `/login` | public | Sign in | Endpoint exists in source; API route reachable, but login/token behavior not runtime-verified |
 | `/chat` | authenticated | New conversation | Preview UI exists (mock data); contract blocked |
 | `/chat/:conversationId` | authenticated | Existing conversation | Blocked (no conversation contract) |
-| `/documents` | authenticated | Document list and upload | Blocked |
-| `/documents/:documentId` | authenticated | Document details and status | Blocked |
-| `/data-sources` | authenticated | Data source list | Blocked |
-| `/data-sources/:sourceId` | authenticated | Source config and schema | Blocked |
+| `/documents` | authenticated | Document list and upload | Preview UI exists (mock data); contract blocked |
+| `/documents/:documentId` | authenticated | Document details and status | Preview UI exists (mock data); contract blocked |
+| `/data-sources` | authenticated | Data source list | Preview UI exists (mock data); contract blocked |
+| `/data-sources/:sourceId` | authenticated | Source config and schema | Preview UI exists (mock data); contract blocked |
 | `/settings/profile` | authenticated | Account and password | Partial (password change exists) |
-| `/settings/ai` | authenticated | Model configuration | Blocked |
-| `/settings/rag` | authenticated | Retrieval/embedding settings | Blocked |
-| `/settings/preferences` | authenticated | UI preferences | Client-only |
+| `/settings/ai` | authenticated | Model configuration | Preview UI at `/settings/ai` (session-only drafts); contract blocked |
+| `/settings/rag` | authenticated | Retrieval/embedding settings | Preview UI at `/settings/retrieval` and `/settings/embedding`; contract blocked |
+| `/settings/preferences` | authenticated | UI preferences | Implemented at `/settings/appearance` (client-only) |
 | `*` | public | Not found | — |
 
 Rules:
@@ -348,12 +390,15 @@ Rules:
 | State kind | Owner | Examples |
 |---|---|---|
 | Server state | TanStack Query | conversations, messages, documents, sources, settings, schema metadata (no feature queries exist yet) |
-| Session state | React Context (`AuthProvider`) + module-level token holder (`src/auth/token-store.ts`) | access token in memory, refresh token in `sessionStorage`, current user summary decoded from the access token for display only; **implemented** |
+| Session state | React Context (`AuthProvider`) + module-level token holder (`src/auth/token-store.ts`) | access token in memory, refresh token in `sessionStorage`, current user summary decoded from the access token for display only; **implemented**. In development, a `sessionStorage` preview marker (`preview_admin_session`) substitutes for a session and is ignored in production |
 | UI preferences | React Context (`ThemeProvider`, `LanguageProvider`) + `localStorage` | `theme` (`light` \| `dark` \| `system`), `language` (`fa` \| `en`); non-sensitive, applied before first paint |
-| URL state | React Router search params | `returnTo` on `/login`; list filters, pagination, active source (future) |
-| Form state | React Hook Form + Zod resolver | login (implemented); change password and source configuration (future) |
-| Ephemeral UI state | Local `useState` | dialog open, composer text, copied state |
+| URL state | React Router search params | `returnTo` on `/login`; documents list `q`, `status`, `type`, `sort`, `page`, `size` (implemented); future list filters and active source |
+| Form state | React Hook Form + Zod resolver | login, data-source create/edit, settings AI/retrieval drafts (implemented); change password (future) |
+| Ephemeral UI state | Local `useState` | dialog open, composer text, copied state, per-section save status |
 | Chat preview state | Feature hook local state (`useChatPreview`) | seeded mock conversations, search, active id, generating flag; **temporary**, replaced by TanStack Query when a contract exists |
+| Documents preview state | Module-scoped store + `useSyncExternalStore` (`features/documents/mock/document-preview-store.ts`) | the eleven preview records shared by the list and details routes; **temporary**, replaced by TanStack Query when a contract exists |
+| Data-sources preview state | Module-scoped store + `useSyncExternalStore` (`features/data-sources/mock/data-source-preview-store.ts`) | the five preview records and their statuses shared by list, details, and form routes; **temporary** |
+| Settings preview state | Module-scoped store + `useSyncExternalStore` (`features/settings/mock/settings-draft-store.ts`) | session-only AI/retrieval drafts with per-section reset; **temporary**; Appearance remains in `localStorage` via the providers |
 | Cross-route client state | Zustand, only if it is needed in 3+ distant places and is not server state | sidebar collapse preference, onboarding dismissal |
 
 Hard rules:
@@ -420,6 +465,7 @@ Component  →  feature data hook  →  TanStack Query  →  feature api module 
 - `src/api/http-client.ts` owns base URL, headers, cancellation, envelope parsing, and error normalization.
 - Implemented today: `src/api/http-client.ts`, `src/api/api-error.ts`, `src/api/types/auth.ts`, and the `src/features/auth` module (login page, `AuthProvider`, `RequireAuth`, `AuthLayout`, `UserMenu`, `auth-api` request helpers, `safe-return-to`). No other feature calls the API.
 - The chat preview calls **nothing**. Its data comes from `features/chat/mock/` and a local timer; there are no query keys, mutations, or DTOs for chat. When the backend contract is verified, add a real `api/` slice and query keys, and delete the mock module.
+- The documents preview calls **nothing**. Its data comes from `features/documents/mock/` and a module-scoped in-memory store; there are no query keys, mutations, upload requests, or DTOs. When the contract is verified, add a real `api/` slice with list/detail/upload/delete/retry hooks and delete the mock module outright.
 - Query keys come from a typed key factory per feature:
 
 ```ts
@@ -494,7 +540,7 @@ flowchart LR
     RP -->|"/api/*"| API["ASP.NET Core API"]
 ```
 
-- Development: Vite dev server on `5173` proxies `/api` to `http://localhost:5000` (the backend `http` profile).
+- Development: Vite dev server on `5173` proxies `/api` to `https://localhost:7189` (the backend `https` profile). Certificate verification is disabled only for this localhost dev proxy because ASP.NET uses a development certificate.
 - Production: the frontend is static files; `/api` is routed to the backend by a reverse proxy on the **same origin**. This is required because the backend currently has **no CORS policy** (verified: no `AddCors`/`UseCors` in `Program.cs`).
 - Do not "fix" this by adding a permissive CORS policy in the frontend repo, and do not ask the browser to bypass CORS.
 - SPA fallback: unknown non-`/api` paths must serve `index.html`.
@@ -511,13 +557,13 @@ Any module marked **Blocked** may have UI scaffolding only if it is clearly non-
 
 | Module | Backend evidence (2026-11-16) | Frontend status |
 |---|---|---|
-| Authentication | 5 routes in `AuthController`; backend solution builds (`dotnet build` 0 errors) but the API cannot start until `Authentication:Jwt:SecretKey` is ≥ 32 chars; contracts are source-verified only | **Implemented** (login, session restore, logout, route guards, account menu); runtime verification against a live API still blocked |
+| Authentication | 5 routes in `AuthController`; Swagger and the Vite proxy are reachable as of 2026-11-22; login/token behavior has not been exercised | **Implemented** (login, session restore, logout, route guards, account menu); live authentication verification remains outstanding |
 | Chat | `ChatController` exists in an uncommitted, unverified working tree; no streaming or persistence endpoints | **UI preview implemented** with isolated mock data; no API call. Real integration **blocked** |
 | Conversation management | Tables `chat.ChatConversations`, `ChatMessages`, `ChatMessageSources` exist; no controller | **UI preview only**: history/search/delete operate on mock state. Blocked |
-| Document upload | `IIndexingService`/`IRagService.UploadFile` exist internally; no HTTP endpoint | **Blocked**; composer attachment control is disabled with an explanation |
-| Document listing/details/deletion | `doc.Document` table exists; no controller | **Blocked** |
-| Data sources | `SiteUserDataSource` only; no schema-browsing endpoint | **Blocked** |
-| Settings | Configuration is server-side `appsettings`; no endpoints | **Blocked** |
+| Document upload | `IIndexingService`/`IRagService.UploadFile` exist internally; no HTTP endpoint, no documented size/type limits | **UI preview implemented** with validation and an indeterminate simulated phase; no API call. Real integration **blocked**; the chat composer attachment control remains disabled |
+| Document listing/details/deletion | `doc.Document` table exists; no controller, no status or progress column | **UI preview implemented** (list, search/filter/sort/pagination, details, delete). No API call; status values are preview labels. Blocked |
+| Data sources | `SiteUserDataSource` only; no source-type registry, schema, or connection-test endpoint | **UI preview implemented** (list, add/edit/delete, details, example schema browser). No API call; SQL Server only; connection test disabled. Blocked |
+| Settings | Configuration is server-side `appsettings`; no endpoints; RAG services commented out in DI | **UI preview implemented** (General read-only, Appearance real, AI/Retrieval session-only drafts, Embedding read-only, similarity threshold disabled). No API call. Blocked |
 | Streaming / stop generation | No SSE, `IAsyncEnumerable`, SignalR, or hub registration | **Blocked**; the stop control only cancels the local mock reply timer |
 | Citations | `Conversation` carries only `messageType` + `text`; sources are not returned | **Blocked**; source cards display mock fields only |
 
@@ -544,6 +590,11 @@ Blocked modules are not an excuse to fake data in production code. Prototype dat
 | AD-13 | Radix-backed vendored primitives; no animation or i18n library | Decided | Accessibility and focus management come from Radix; motion is two CSS keyframes |
 | AD-14 | Persist only theme and language in `localStorage` | Decided | No sensitive data in browser storage; preferences apply before first paint |
 | AD-15 | Chat ships as a UI preview with isolated mock data and a visible banner until the backend contract is verified | Decided, implemented | Exercises the interface honestly without inventing endpoints; `mock/` must be deleted when real chat lands |
+| AD-16 | Documents ship as a UI preview with isolated mock data and visible notices until the backend contract is verified | Decided, implemented | Uploads show an indeterminate preview phase and never fabricate a percentage; `mock/` must be deleted when real documents land |
+| AD-17 | List query state (`q`, `status`, `type`, `sort`, `page`, `size`) is owned by URL search params, with defaults omitted and `replace` writes | Decided, implemented for documents | Reload, shared links, and back/forward restore the same view; reuse for future lists instead of component state |
+| AD-18 | Data sources ship as an honest UI preview with isolated mock data, a fixed SQL Server example type, a disabled connection test, and transient-only credentials | Decided, implemented | CRUD, validation, and the schema tree are reviewable without inventing an endpoint or storing a secret; `mock/` must be deleted when the contract lands |
+| AD-19 | Settings ship as an honest preview: Appearance persists in this browser; General is read-only; AI/Retrieval are session-only drafts; Embedding is read-only server-managed; unsupported options are disabled | Decided, implemented | The layout and validation are exercisable without implying server persistence; nothing is sent to the backend |
+| AD-20 | A development-only preview admin sign-in unblocks authenticated-page review while the API cannot start: no token, no request, a DEV-guarded `sessionStorage` marker, visible bilingual labelling, UI-only roles | Decided, implemented | The flow is reviewable without faking authentication; production builds contain no marker check, no preview identity, and no login card |
 
 ---
 

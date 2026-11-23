@@ -1,0 +1,1261 @@
+{
+  "base": "http://localhost:5173",
+  "runs": [
+    {
+      "name": "data-sources-list-1440-fa-light",
+      "file": "H:\\AiProjects\\RagAssistantWebApp\\Docs\\Ai\\reviews\\assets\\2026-11-17-data-sources-settings\\data-sources-list-1440-fa-light.png"
+    },
+    {
+      "name": "data-sources-list-1440-en-light",
+      "file": "H:\\AiProjects\\RagAssistantWebApp\\Docs\\Ai\\reviews\\assets\\2026-11-17-data-sources-settings\\data-sources-list-1440-en-light.png"
+    },
+    {
+      "name": "data-sources-list-768-fa-light",
+      "file": "H:\\AiProjects\\RagAssistantWebApp\\Docs\\Ai\\reviews\\assets\\2026-11-17-data-sources-settings\\data-sources-list-768-fa-light.png"
+    },
+    {
+      "name": "data-sources-list-360-en-light",
+      "file": "H:\\AiProjects\\RagAssistantWebApp\\Docs\\Ai\\reviews\\assets\\2026-11-17-data-sources-settings\\data-sources-list-360-en-light.png"
+    },
+    {
+      "name": "data-sources-list-1440-fa-dark",
+      "file": "H:\\AiProjects\\RagAssistantWebApp\\Docs\\Ai\\reviews\\assets\\2026-11-17-data-sources-settings\\data-sources-list-1440-fa-dark.png"
+    },
+    {
+      "name": "data-source-details-1440-fa",
+      "file": "H:\\AiProjects\\RagAssistantWebApp\\Docs\\Ai\\reviews\\assets\\2026-11-17-data-sources-settings\\data-source-details-1440-fa.png"
+    },
+    {
+      "name": "data-source-details-1440-en",
+      "file": "H:\\AiProjects\\RagAssistantWebApp\\Docs\\Ai\\reviews\\assets\\2026-11-17-data-sources-settings\\data-source-details-1440-en.png"
+    },
+    {
+      "name": "settings-general-1440-fa-light",
+      "file": "H:\\AiProjects\\RagAssistantWebApp\\Docs\\Ai\\reviews\\assets\\2026-11-17-data-sources-settings\\settings-general-1440-fa-light.png"
+    },
+    {
+      "name": "settings-appearance-1440-en-light",
+      "file": "H:\\AiProjects\\RagAssistantWebApp\\Docs\\Ai\\reviews\\assets\\2026-11-17-data-sources-settings\\settings-appearance-1440-en-light.png"
+    },
+    {
+      "name": "settings-ai-1440-fa-dark",
+      "file": "H:\\AiProjects\\RagAssistantWebApp\\Docs\\Ai\\reviews\\assets\\2026-11-17-data-sources-settings\\settings-ai-1440-fa-dark.png"
+    },
+    {
+      "name": "settings-embedding-1440-fa-light",
+      "file": "H:\\AiProjects\\RagAssistantWebApp\\Docs\\Ai\\reviews\\assets\\2026-11-17-data-sources-settings\\settings-embedding-1440-fa-light.png"
+    },
+    {
+      "name": "settings-retrieval-360-en",
+      "file": "H:\\AiProjects\\RagAssistantWebApp\\Docs\\Ai\\reviews\\assets\\2026-11-17-data-sources-settings\\settings-retrieval-360-en.png"
+    },
+    {
+      "name": "data-source-form-1440-fa-errors",
+      "file": "H:\\AiProjects\\RagAssistantWebApp\\Docs\\Ai\\reviews\\assets\\2026-11-17-data-sources-settings\\data-source-form-1440-fa-errors.png"
+    },
+    {
+      "name": "data-source-form-360-en-errors",
+      "file": "H:\\AiProjects\\RagAssistantWebApp\\Docs\\Ai\\reviews\\assets\\2026-11-17-data-sources-settings\\data-source-form-360-en-errors.png"
+    },
+    {
+      "name": "data-source-details-created-fa",
+      "file": "H:\\AiProjects\\RagAssistantWebApp\\Docs\\Ai\\reviews\\assets\\2026-11-17-data-sources-settings\\data-source-details-created-fa.png"
+    },
+    {
+      "name": "data-source-delete-dialog-1440-fa",
+      "file": "H:\\AiProjects\\RagAssistantWebApp\\Docs\\Ai\\reviews\\assets\\2026-11-17-data-sources-settings\\data-source-delete-dialog-1440-fa.png"
+    }
+  ],
+  "checks": [
+    {
+      "label": "data-sources 1440 fa light",
+      "lang": "fa",
+      "dir": "rtl",
+      "dark": false,
+      "overflowX": 0,
+      "h1": "منابع داده",
+      "badges": [
+        {
+          "text": "پیش‌نمایش رابط",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "متصل",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "متصل",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "قطع",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "خطا",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "قطع",
+          "icons": 1
+        }
+      ],
+      "ltrNodes": 6,
+      "previewNotice": true,
+      "persianUiLeftovers": [],
+      "smallRowTargets": [
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        }
+      ],
+      "hamburger": {
+        "h": 0,
+        "w": 0
+      },
+      "pv": true,
+      "textSample": "منابع دادهپیش‌نمایش رابطاین صفحه با دادهٔ نمایشی کار می‌کند و به سرور متصل نیست؛ افزودن، ویرایش، حذف و آزمون اتصال واقعی انجام نمی‌شود.افزودن منبع دادهحالت پیش‌نمایش (فقط توسعه)عادیبارگذاریخطابازنشانی دادهسرور هنوز فهرستی از انواع منبع داده ندارد؛ «SQL Server»"
+    },
+    {
+      "label": "data-sources 1440 en light",
+      "lang": "en",
+      "dir": "ltr",
+      "dark": false,
+      "overflowX": 0,
+      "h1": "Data sources",
+      "badges": [
+        {
+          "text": "Interface preview",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "Connected",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "Connected",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "Disconnected",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "Error",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "Disconnected",
+          "icons": 1
+        }
+      ],
+      "ltrNodes": 7,
+      "previewNotice": true,
+      "persianUiLeftovers": [],
+      "smallRowTargets": [
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        }
+      ],
+      "hamburger": {
+        "h": 0,
+        "w": 0
+      },
+      "pv": false,
+      "textSample": "Data  ource Interface previewThi  page run  on mock data and i  not connected to the  erver; adding, editing, deleting, and connection te ting are not real.Add data  ourcePreview  tate (dev only)ReadyLoadingErrorRe et dataThe  erver doe  not expo e a data- our"
+    },
+    {
+      "label": "data-sources 768 fa light",
+      "lang": "fa",
+      "dir": "rtl",
+      "dark": false,
+      "overflowX": 0,
+      "h1": "منابع داده",
+      "badges": [
+        {
+          "text": "پیش‌نمایش رابط",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "متصل",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "متصل",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "قطع",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "خطا",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "قطع",
+          "icons": 1
+        }
+      ],
+      "ltrNodes": 6,
+      "previewNotice": true,
+      "persianUiLeftovers": [],
+      "smallRowTargets": [
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        }
+      ],
+      "hamburger": {
+        "h": 44,
+        "w": 44
+      },
+      "pv": true,
+      "textSample": "منابع دادهپیش‌نمایش رابطاین صفحه با دادهٔ نمایشی کار می‌کند و به سرور متصل نیست؛ افزودن، ویرایش، حذف و آزمون اتصال واقعی انجام نمی‌شود.افزودن منبع دادهحالت پیش‌نمایش (فقط توسعه)عادیبارگذاریخطابازنشانی دادهسرور هنوز فهرستی از انواع منبع داده ندارد؛ «SQL Server»"
+    },
+    {
+      "label": "data-sources 360 en light",
+      "lang": "en",
+      "dir": "ltr",
+      "dark": false,
+      "overflowX": 0,
+      "h1": "Data sources",
+      "badges": [
+        {
+          "text": "Interface preview",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "Connected",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "Connected",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "Disconnected",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "Error",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "Disconnected",
+          "icons": 1
+        }
+      ],
+      "ltrNodes": 7,
+      "previewNotice": true,
+      "persianUiLeftovers": [],
+      "smallRowTargets": [],
+      "hamburger": {
+        "h": 44,
+        "w": 44
+      },
+      "pv": false,
+      "textSample": "Data  ource Interface previewThi  page run  on mock data and i  not connected to the  erver; adding, editing, deleting, and connection te ting are not real.Add data  ourcePreview  tate (dev only)ReadyLoadingErrorRe et dataThe  erver doe  not expo e a data- our"
+    },
+    {
+      "label": "data-sources 1440 fa dark",
+      "lang": "fa",
+      "dir": "rtl",
+      "dark": true,
+      "overflowX": 0,
+      "h1": "منابع داده",
+      "badges": [
+        {
+          "text": "پیش‌نمایش رابط",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "متصل",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "متصل",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "قطع",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "خطا",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "قطع",
+          "icons": 1
+        }
+      ],
+      "ltrNodes": 6,
+      "previewNotice": true,
+      "persianUiLeftovers": [],
+      "smallRowTargets": [
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        },
+        {
+          "h": 36,
+          "w": 36
+        }
+      ],
+      "hamburger": {
+        "h": 0,
+        "w": 0
+      },
+      "pv": true,
+      "textSample": "منابع دادهپیش‌نمایش رابطاین صفحه با دادهٔ نمایشی کار می‌کند و به سرور متصل نیست؛ افزودن، ویرایش، حذف و آزمون اتصال واقعی انجام نمی‌شود.افزودن منبع دادهحالت پیش‌نمایش (فقط توسعه)عادیبارگذاریخطابازنشانی دادهسرور هنوز فهرستی از انواع منبع داده ندارد؛ «SQL Server»"
+    },
+    {
+      "label": "details 1440 fa",
+      "lang": "fa",
+      "dir": "rtl",
+      "dark": false,
+      "overflowX": 0,
+      "h1": "پایگاه دادهٔ فروش",
+      "badges": [
+        {
+          "text": "متصل",
+          "icons": 1
+        },
+        {
+          "text": "پیش‌نمایش رابط",
+          "icons": 1
+        },
+        {
+          "text": "متصل",
+          "icons": 1
+        },
+        {
+          "text": "ثبت شده — هرگز نمایش داده نمی‌شود",
+          "icons": 0
+        }
+      ],
+      "ltrNodes": 9,
+      "previewNotice": true,
+      "persianUiLeftovers": [],
+      "smallRowTargets": [],
+      "hamburger": {
+        "h": 0,
+        "w": 0
+      },
+      "pv": false,
+      "textSample": "بازگشت به منابع دادهپایگاه دادهٔ فروشمتصلپیش‌نمایش رابطجزئیات از دادهٔ نمایشی می‌آید و چیزی از سرور بارگذاری نمی‌شود.اطلاعات منبعنامپایگاه دادهٔ فروشنوعSQL Serverوضعیت اتصالمتصلآخرین همگام‌سازی۲۵ آبان ۱۴۰۵، ۱۱:۱۰تاریخ ایجاد۱۰ مهر ۱۴۰۵، ۱۲:۴۵شناسهٔ منبع rc-01اط"
+    },
+    {
+      "label": "details 1440 en",
+      "lang": "en",
+      "dir": "ltr",
+      "dark": false,
+      "overflowX": 0,
+      "h1": "پایگاه دادهٔ فروش",
+      "badges": [
+        {
+          "text": "Connected",
+          "icons": 1
+        },
+        {
+          "text": "Interface preview",
+          "icons": 1
+        },
+        {
+          "text": "Connected",
+          "icons": 1
+        },
+        {
+          "text": "Stored — never displayed",
+          "icons": 0
+        }
+      ],
+      "ltrNodes": 10,
+      "previewNotice": true,
+      "persianUiLeftovers": [],
+      "smallRowTargets": [],
+      "hamburger": {
+        "h": 0,
+        "w": 0
+      },
+      "pv": false,
+      "textSample": "Back to data  ource پایگاه دادهٔ فروشConnectedInterface previewDetail  come from mock data; nothing i  loaded from the  erver.Source informationNameپایگاه دادهٔ فروشTypeSQL ServerConnection  tatu ConnectedLa t  yncNov 16, 2026, 11:10 AMCreatedOct 2, 2026, 12:4"
+    },
+    {
+      "label": "settings general 1440 fa",
+      "lang": "fa",
+      "dir": "rtl",
+      "dark": false,
+      "overflowX": 0,
+      "h1": "تنظیمات",
+      "badges": [],
+      "ltrNodes": 4,
+      "previewNotice": true,
+      "persianUiLeftovers": [],
+      "smallRowTargets": [],
+      "hamburger": {
+        "h": 0,
+        "w": 0
+      },
+      "pv": false,
+      "textSample": "تنظیماتترجیحات ظاهری واقعی‌اند؛ بخش‌های هوش مصنوعی، تعبیه و بازیابی فقط پیش‌نمایند و به سرور فرستاده نمی‌شوند.عمومیظاهرمدل هوش مصنوعیتعبیهبازیابیتنظیمات عمومیاین مقادیر از نشست و پیکربندی ساخت خوانده می‌شوند و از طریق API قابل ویرایش نیستند.نام کاربریadminرایا"
+    },
+    {
+      "label": "settings appearance 1440 en",
+      "lang": "en",
+      "dir": "ltr",
+      "dark": false,
+      "overflowX": 0,
+      "h1": "Settings",
+      "badges": [],
+      "ltrNodes": 2,
+      "previewNotice": true,
+      "persianUiLeftovers": [],
+      "smallRowTargets": [],
+      "hamburger": {
+        "h": 0,
+        "w": 0
+      },
+      "pv": false,
+      "textSample": "Setting Appearance preference  are real; the AI, embedding, and retrieval  ection  are preview  and are never  ent to the  erver.GeneralAppearanceAI modelEmbeddingRetrievalAppearanceTheme and language are  aved in thi  brow er and applied immediately.ThemeLigh"
+    },
+    {
+      "label": "settings ai 1440 fa dark",
+      "lang": "fa",
+      "dir": "rtl",
+      "dark": true,
+      "overflowX": 0,
+      "h1": "تنظیمات",
+      "badges": [
+        {
+          "text": "پیش‌نمایش تنظیمات",
+          "icons": 1
+        }
+      ],
+      "ltrNodes": 3,
+      "previewNotice": false,
+      "persianUiLeftovers": [],
+      "smallRowTargets": [],
+      "hamburger": {
+        "h": 0,
+        "w": 0
+      },
+      "pv": false,
+      "textSample": "تنظیماتترجیحات ظاهری واقعی‌اند؛ بخش‌های هوش مصنوعی، تعبیه و بازیابی فقط پیش‌نمایند و به سرور فرستاده نمی‌شوند.عمومیظاهرمدل هوش مصنوعیتعبیهبازیابیمدل هوش مصنوعیپیش‌نمایش تنظیماتOllama تنها ارائه‌دهندهٔ پیاده‌سازی‌شده است و سرور انتزاع ارائه‌دهنده ندارد.این مقاد"
+    },
+    {
+      "label": "settings embedding 1440 fa",
+      "lang": "fa",
+      "dir": "rtl",
+      "dark": false,
+      "overflowX": 0,
+      "h1": "تنظیمات",
+      "badges": [
+        {
+          "text": "مدیریت‌شده در سرور — قابل نمایش نیست",
+          "icons": 0
+        },
+        {
+          "text": "مدیریت‌شده در سرور — قابل نمایش نیست",
+          "icons": 0
+        }
+      ],
+      "ltrNodes": 1,
+      "previewNotice": false,
+      "persianUiLeftovers": [],
+      "smallRowTargets": [],
+      "hamburger": {
+        "h": 0,
+        "w": 0
+      },
+      "pv": false,
+      "textSample": "تنظیماتترجیحات ظاهری واقعی‌اند؛ بخش‌های هوش مصنوعی، تعبیه و بازیابی فقط پیش‌نمایند و به سرور فرستاده نمی‌شوند.عمومیظاهرمدل هوش مصنوعیتعبیهبازیابیتعبیهتعبیه در سمت سرور با مدل محلی انجام می‌شود.مدل تعبیهمدیریت‌شده در سرور — قابل نمایش نیستتوکنایزرمدیریت‌شده در "
+    },
+    {
+      "label": "settings retrieval 360 en",
+      "lang": "en",
+      "dir": "ltr",
+      "dark": false,
+      "overflowX": 0,
+      "h1": "Settings",
+      "badges": [
+        {
+          "text": "Settings preview",
+          "icons": 1
+        }
+      ],
+      "ltrNodes": 6,
+      "previewNotice": true,
+      "persianUiLeftovers": [],
+      "smallRowTargets": [],
+      "hamburger": {
+        "h": 44,
+        "w": 44
+      },
+      "pv": false,
+      "textSample": "Setting Appearance preference  are real; the AI, embedding, and retrieval  ection  are preview  and are never  ent to the  erver.GeneralAppearanceAI modelEmbeddingRetrievalRetrievalSetting  previewThe value  below are code and  erver configuration default . Sa"
+    },
+    {
+      "label": "create form errors 1440 fa",
+      "lang": "fa",
+      "dir": "rtl",
+      "dark": false,
+      "overflowX": 0,
+      "h1": "افزودن منبع داده",
+      "badges": [
+        {
+          "text": "پیش‌نمایش رابط",
+          "icons": 1
+        }
+      ],
+      "ltrNodes": 6,
+      "previewNotice": true,
+      "persianUiLeftovers": [],
+      "smallRowTargets": [],
+      "hamburger": {
+        "h": 0,
+        "w": 0
+      },
+      "pv": false,
+      "textSample": "بازگشت به منابع دادهافزودن منبع دادهپیش‌نمایش رابطاطلاعات اتصال را وارد کنید. در این پیش‌نمایش هیچ اتصالی به پایگاه داده برقرار نمی‌شود. این فرم فقط دادهٔ نمایشی می‌سازد؛ گذرواژه پس از ذخیره نگهداری نمی‌شود و هیچ درخواستی به سرور فرستاده نمی‌شود.نام نمایشینام "
+    }
+  ],
+  "interactions": [
+    {
+      "name": "create form validation",
+      "emptyErrors": 6
+    },
+    {
+      "name": "create form validation 360 en",
+      "emptyErrors": 6
+    },
+    {
+      "name": "add flow",
+      "path": "/data-sources/src-preview-1",
+      "heading": "Browser sales",
+      "announced": true,
+      "passwordInDom": false,
+      "passwordInStorage": false,
+      "passwordInputs": 0
+    },
+    {
+      "name": "edit flow",
+      "path": "/data-sources/src-01",
+      "heading": "ویرایش‌شده فروش",
+      "credentialConfigured": true
+    },
+    {
+      "name": "delete flow",
+      "rowsBefore": 5,
+      "afterCancel": 5,
+      "rowsAfter": 4
+    },
+    {
+      "name": "connection test",
+      "disabled": true,
+      "describedBy": "test-connection-note",
+      "note": "نقطهٔ پایانی آزمون اتصال در سرور وجود ندارد؛ این دکمه در پیش‌نمایش غیرفعال است."
+    },
+    {
+      "name": "schema tree",
+      "treeBefore": 9,
+      "clickedDb": true,
+      "treeAfterClick": 2,
+      "activeBefore": "SalesDb",
+      "activeAfter": "Customers"
+    },
+    {
+      "name": "dev preview control",
+      "loadingVisible": true,
+      "errorVisible": true,
+      "listBack": true
+    },
+    {
+      "name": "appearance persistence",
+      "darkApplied": true,
+      "englishApplied": true,
+      "dark": true,
+      "lang": "en",
+      "dir": "ltr",
+      "themeStored": "dark",
+      "languageStored": "en"
+    },
+    {
+      "name": "ai settings",
+      "modelError": true,
+      "aiSaved": true,
+      "aiReset": "qwen2.5-coder:7b"
+    },
+    {
+      "name": "retrieval settings",
+      "retrievalDefaults": {
+        "chunk": "300",
+        "overlap": "50",
+        "topK": "5",
+        "similarity": {
+          "disabled": true,
+          "placeholder": "در سرور پشتیبانی نمی‌شود"
+        }
+      },
+      "overlapError": true
+    },
+    {
+      "name": "not found states",
+      "settingsNotFound": true,
+      "sourcesNotFound": true
+    }
+  ],
+  "errors": [],
+  "summary": {
+    "screenshots": 16,
+    "smallRowTargets": [
+      {
+        "label": "data-sources 1440 fa light",
+        "small": [
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          }
+        ]
+      },
+      {
+        "label": "data-sources 1440 en light",
+        "small": [
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          }
+        ]
+      },
+      {
+        "label": "data-sources 768 fa light",
+        "small": [
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          }
+        ]
+      },
+      {
+        "label": "data-sources 1440 fa dark",
+        "small": [
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          },
+          {
+            "h": 36,
+            "w": 36
+          }
+        ]
+      }
+    ],
+    "overflow": [],
+    "persianLeftovers": [],
+    "mobileCheck": {
+      "lang": "en",
+      "dir": "ltr",
+      "dark": false,
+      "overflowX": 0,
+      "h1": "Data sources",
+      "badges": [
+        {
+          "text": "Interface preview",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "Connected",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "Connected",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "Disconnected",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "Error",
+          "icons": 1
+        },
+        {
+          "text": "SQL Server",
+          "icons": 0
+        },
+        {
+          "text": "Disconnected",
+          "icons": 1
+        }
+      ],
+      "ltrNodes": 7,
+      "previewNotice": true,
+      "persianUiLeftovers": [],
+      "smallRowTargets": [],
+      "hamburger": {
+        "h": 44,
+        "w": 44
+      },
+      "pv": false,
+      "textSample": "Data  ource Interface previewThi  page run  on mock data and i  not connected to the  erver; adding, editing, deleting, and connection te ting are not real.Add data  ourcePreview  tate (dev only)ReadyLoadingErrorRe et dataThe  erver doe  not expo e a data- our"
+    }
+  }
+}

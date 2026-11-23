@@ -2,7 +2,7 @@
 
 > **Status:** Contract reference for the React application. The HTTP transport and the **authentication** flow are implemented and consume only the endpoints in §4. The chat page is a UI preview backed by isolated mock data and calls no endpoint; no other endpoint is called.
 > **Rule:** Only contracts verified in backend source may be documented as endpoints. Nothing here may be invented.
-> **Backend baseline:** `RagAssistantApi` at `afd92ec` with an uncommitted working tree, source-inspected 2026-11-16. `dotnet build RagAssistant.Api.slnx` **succeeds** (0 errors), but the API cannot start: `Authentication:Jwt:SecretKey` is shorter than 32 characters. No endpoint has been executed, so every contract below is **source-verified, not runtime-verified**.
+> **Backend baseline:** `RagAssistantApi` at `afd92ec` with an uncommitted working tree, source-inspected 2026-11-16. On 2026-11-22 the HTTPS Swagger UI and OpenAPI document returned HTTP 200; GET `/api/auth/login` through the Vite proxy returned HTTP 405, confirming it reached the POST-only route. Login/token behavior has not been exercised. The earlier JWT startup failure is documented in `PROJECT_CONTEXT.md` and the active backend configuration was not inspected.
 > **Last updated:** 2026-11-16
 >
 > Related: [Architecture](./frontend-architecture.md) · [Security](./frontend-security-standards.md) · [Testing](./frontend-testing-standards.md) · [Project context](../../PROJECT_CONTEXT.md)
@@ -49,14 +49,15 @@ server: {
   port: 5173,
   proxy: {
     '/api': {
-      target: 'http://localhost:5000',
+      target: 'https://localhost:7189',
       changeOrigin: true,
+      secure: false,
     },
   },
 }
 ```
 
-The frontend then uses relative paths (`/api/auth/login`) with `VITE_API_BASE_URL` empty. Production uses the same relative paths behind a same-origin reverse proxy. Do not add CORS workarounds in the client.
+The frontend then uses relative paths (`/api/auth/login`) with `VITE_API_BASE_URL` empty. The URL `https://localhost:7189/swagger/index.html` is the Swagger documentation page; the API origin used by the proxy is `https://localhost:7189`, and API routes are appended under `/api`. `secure: false` applies only to the local Vite proxy so the development HTTPS certificate is accepted; do not carry this setting into production. Production uses the same relative paths behind a same-origin reverse proxy. Do not add CORS workarounds in the client.
 
 > Verify the effective backend origin at integration time. `UseHttpsRedirection` behaves differently depending on the launch profile and whether an HTTPS port is configured.
 
@@ -204,6 +205,15 @@ export interface ChangePasswordRequest {
 | `POST /api/auth/logout` | `AuthProvider.logout` | Refresh token from `sessionStorage`; local state cleared regardless of the response |
 | `POST /api/auth/logout-all` | not called | No UI yet |
 | `POST /api/auth/change-password` | not called | No UI yet |
+
+### 4.8 Development preview sign-in (not a contract)
+
+The login page offers a development-only "Sign in as preview admin" action for local UI review. It is **not an endpoint, a default account, or a backend behavior**:
+
+- It calls no API, issues no token, and writes no refresh token; it sets a `sessionStorage` marker guarded by `import.meta.env.DEV`.
+- The account menu shows `admin` / `admin@example.com` / `Role: Admin` from the static preview identity; no permission is checked by the UI.
+- The action and marker checks do not exist in production builds. Delete `src/features/auth/preview/` when real sign-in is usable; the `login`/`refresh`/`logout` calls in §4.1–§4.3 are unchanged.
+- Do not treat this as evidence that real authentication works. Authentication has not been runtime-verified until a real login obtains a token.
 
 ---
 
@@ -389,7 +399,7 @@ At the last verified inspection (`afd92ec`, 2026-11-15) `ChatController` was inv
 - `RagService.ChatAboutFileAsync` contained demo/debug code (`int.Parse("e")`) and wrote a demo `SiteUser`, so it threw before producing an answer.
 - `ChatAsync` delegated to the chat completion service without retrieval.
 
-The uncommitted working tree inspected on 2026-11-16 modifies `ChatController` and the solution now builds, but nothing in the chat path was executed and the API cannot start. **Do not assume the defects above are fixed.** The contract is unverified and unusable.
+The uncommitted working tree inspected on 2026-11-16 modifies `ChatController` and the solution builds, but nothing in the chat path was executed. Although the API now responds on HTTPS, the chat path remains unverified and unusable until its source and contract are reviewed. **Do not assume the defects above are fixed.**
 
 Intended-but-unconfirmed DTOs:
 
@@ -426,13 +436,15 @@ Missing for a real chat product:
 
 ## 9. Document Contract (Not Implemented)
 
+**Frontend status (2026-11-17): a UI preview is implemented and makes zero requests.** The Documents page renders list, search, status/type filters, sorting, pagination, drag-and-drop and picker upload, status badges, delete confirmation, and the `/documents/:documentId` details route from isolated mock data (`src/features/documents/mock/`). There is no `api/` slice, no query key, no DTO, and no upload request. The preview upload phase is a cancellable timer; nothing is uploaded, processed, indexed, or deleted on a server, and no processing percentage is ever shown. The mock module must be deleted when a real contract lands.
+
 No route exists for upload, listing, details, deletion, or status.
 
 Backend facts that constrain the future contract:
 
 - Ingestion accepts PDF content (`PdfPig`), chunked at 300 tokens with 50-token overlap.
 - A collection name is supplied by the caller; there is no per-user isolation in the ingestion code.
-- `doc.Document` has `Id` (Guid), `FileName`, `CollectionName`, `Data` (varbinary), `SizeInBytes`, `CreationDate`.
+- `doc.Document` has `Id` (Guid), `FileName`, `CollectionName`, `Data` (varbinary), `SizeInBytes`, `CreationDate`. It has **no status, progress, or failure column**.
 - `IRagService.UploadFile(List<Document>, string collectionName)` is internal only.
 - No authorization or ownership check exists in the upload path.
 
@@ -453,28 +465,87 @@ When a contract exists, require:
 - Client-side checks are UX only; the backend validates.
 - Handle `413 Payload Too Large` distinctly.
 - Do not assume idempotency; prevent duplicate submissions for the same file.
+- Until a real byte count exists, keep the progress bar indeterminate. Never render a fabricated percentage.
+
+The current preview implementation already follows the client-side parts of these rules: PDF-only extension/MIME checks, zero-byte rejection, a 10 MB preview ceiling, duplicate detection by normalized name + size, an indeterminate bar, per-row cancellation, and no `Content-Type` manipulation because no request is made.
+
+### 9.2 Exact contract needed (request, not implemented)
+
+These shapes are the frontend's requirements for review by the backend owner. They are **not** implemented and must not be coded against until verified in backend source.
+
+| Method and path | Purpose | Required behavior |
+|---|---|---|
+| `POST /api/documents` | Upload | `multipart/form-data` with `file` and optional collection; `201` with metadata and a `Location` header; `400` invalid, `413` too large, `415` unsupported type, `409` duplicate |
+| `GET /api/documents` | List | `page`, `pageSize`, `search`, `status`, `fileType`, `sort`, `order`; returns `items`, `page`, `pageSize`, `total`, `totalPages` |
+| `GET /api/documents/{id}` | Details | Metadata plus optional `progress { phase, percent }`, failure code, and timestamps; `404` when missing or not owned |
+| `DELETE /api/documents/{id}` | Delete | `204`; `404` when missing; documented index/vector cleanup semantics |
+| `POST /api/documents/{id}/retry` | Retry processing | `202`; `409` unless the document is `failed` |
+
+Also required before integration:
+
+- The authoritative status enum names and the transition graph (the preview's six labels are a UI guess).
+- Documented MIME list, maximum size, and maximum document count.
+- Ownership enforcement tied to the authenticated user, not a caller-supplied collection.
+- Permission names for `documents.read`, `documents.create`, and `documents.delete`.
+- A startable API (`Authentication:Jwt:SecretKey` ≥ 32 characters) so any of this can be runtime-verified.
 
 ---
 
 ## 10. Data Source and Settings Contracts
 
+Neither module has a backend surface. No endpoint, DTO, source-type registry, schema response, connection-test response, or settings payload exists. The API currently responds on HTTPS, but that does not add these missing contracts. The frontend implements both as **honest UI previews** (AD-18/AD-19): zero HTTP calls, no invented wire types, isolated mock modules, and visible bilingual preview notices.
+
 ### 10.1 Data sources
 
-No endpoints exist for listing, configuring, browsing schemas, tables, columns, or permissions.
+Backend evidence:
 
-- `SiteUserDataSource` is an internal EF CRUD implementation, not a schema-browsing API.
-- `usr.SiteUser` stores a plaintext `Password` column; the frontend must never request or display it.
+- Controllers are only `AuthController`, `ChatController`, and the demo `TestController`; there is no data-source controller.
+- `SiteUserDataSource` is an internal EF CRUD implementation for `usr.SiteUser` (which stores a plaintext `Password` column), **not** a source registry or schema API.
+- There is no supported-source-type list, connection test, schema listing, or data-source permission.
 
-Frontend status: **blocked**. Do not invent `/api/datasources` routes.
+Frontend status (2026-11-17): **preview implemented, integration blocked**.
+
+- Routes: `/data-sources`, `/data-sources/new`, `/data-sources/:sourceId`, `/data-sources/:sourceId/edit`.
+- All records (`src-01`…`src-05`), statuses, last-sync values, and schema trees come from `src/features/data-sources/mock/` and live in a module-scoped in-memory store.
+- Only `sql-server` is offered, labelled as a preview example because no registry exists.
+- The connection-test button is disabled with a visible `aria-describedby` reason; no test is simulated.
+- Credentials are transient form input only. Records store `hasCredential: boolean`; the mock data, store, DOM after save, URL, logs, and browser storage contain no password. Connection strings are never assembled or displayed.
+- `/api/test/*` must not be used as a substitute.
 
 ### 10.2 Settings
 
-No endpoints exist for model, retrieval, embedding, or user preferences.
+Backend evidence:
 
-- Backend configuration is server-side (`appsettings`, options pattern); the frontend cannot read it.
-- Do not expose model paths, endpoints, or keys.
+- No settings controller or endpoint. Configuration is server-side options (`OllamaOptions`, `QdrantOptions`, `EmbeddingOptions`) bound from `appsettings.json`; the browser cannot read or write it.
+- The RAG services are commented out in `DependencyInjection.cs`, so even the configured values are not live runtime configuration.
+- Source-verified defaults used by the preview: provider Ollama, model `qwen2.5-coder:7b`, timeout 10 s (`appsettings.json`); chunk size 300 and overlap 50 (`SemanticKernelTextChunker` constructor defaults); top-K 5 (hardcoded in `RagService` and `QdrantDataSource`). There is no similarity threshold in the backend.
 
-Frontend status: **blocked**, except client-only preferences (theme, density) and the account/password screen backed by the verified auth endpoints.
+Frontend status (2026-11-17): **preview implemented, integration blocked**.
+
+- Routes: `/settings` (General) and `/settings/:section` for `appearance`, `ai`, `embedding`, `retrieval`; an unknown section renders an in-shell not-found state.
+- Appearance (theme, language) is fully functional through the existing providers and persists in this browser.
+- General is read-only session/build information (signed-in user, app name, API base, environment).
+- AI and Retrieval are **validated drafts saved in memory for the session only**, seeded from the source-verified defaults, with a visible notice that server configuration is unchanged.
+- Embedding is read-only "server-managed"; model paths, endpoints, and keys are never rendered.
+- Similarity threshold is rendered disabled because the backend does not implement it.
+- No endpoint is called and nothing is persisted beyond `theme`/`language` in `localStorage`.
+
+### 10.3 Exact contract needed (documented, not implemented)
+
+**Data sources**
+
+- `GET /api/data-sources` → `items[]` (`id`, `name`, `type`, `status`, `lastSyncAt`, `createdAt`); paging optional.
+- `GET /api/data-sources/types` → supported type descriptors (id, label, required fields).
+- `POST /api/data-sources` (`type`, `name`, connection fields + write-only credential) → 201 + `Location`; 400/409.
+- `GET /api/data-sources/{id}`; `PUT`/`PATCH /api/data-sources/{id}` (credential optional, never returned); `DELETE` → 204.
+- `POST /api/data-sources/{id}/test-connection` → status + safe error code.
+- `GET /api/data-sources/{id}/schema` → databases → tables → columns (`name`, `dataType`, `nullable`).
+- Ownership/authorization per source; permissions `data-sources.read/create/update/delete`; documented credential encryption and redaction; documented limits; startable API.
+
+**Settings**
+
+- `GET /api/settings` → sanitized values only (provider, model, timeout, chunk size, overlap, top-K, similarity threshold or null, embedding model **name** if approved); never paths, endpoints, or keys.
+- `PUT /api/settings` → validated update, permission `settings.read/update`, audit trail, and an explicit rule for whether any value becomes runtime-mutable (today they are options/code defaults and RAG DI is disabled).
 
 ---
 

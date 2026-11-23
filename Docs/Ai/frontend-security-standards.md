@@ -141,7 +141,7 @@ The secure long-term design is for the backend to set the refresh token in an **
   - Treat decoded values as untrusted display data.
   - Never use decoded permissions to decide whether an operation is allowed; the backend decides. Permissions may hide a menu item, but the request must still handle `403`.
   - Claims verified in issuer code: `UserId`, `preferred_username`, `useremail`, `security_stamp`, `permission` (repeated), and a role claim built from `ClaimTypes.Role`.
-  - **Unverified:** the exact serialized name of the role claim. Outbound JWT claim mapping may emit `role` rather than the long `ClaimTypes.Role` URI. Do not build critical UI on the role claim until a real token has been inspected.
+  - **Unverified:** the exact serialized name of the role claim. Outbound JWT claim mapping may emit `role` rather than the long `ClaimTypes.Role` URI. The frontend accepts both and shows the result in the account menu as display-only data; do not build critical UI or access decisions on roles until a real token has been inspected.
 - If decoding fails, degrade to "unknown user" and rely on backend responses.
 
 ### 4.5 Token lifecycle events
@@ -165,6 +165,17 @@ Clear all session state (memory tokens, refresh token, query cache, user summary
 - Tests assert that `localStorage` stays empty after login and that the refresh token is present in `sessionStorage`. Global test cleanup calls `clearTokens()` and clears both storages between tests.
 
 Retained residual risk: `sessionStorage` is XSS-readable, and a duplicated tab can race the original on refresh (see §5). Refresh tokens remain interim until the backend offers httpOnly cookies.
+
+### 4.7 Development preview sign-in (not authentication)
+
+Implemented 2026-11-17 because the API cannot start (JWT secret) and authenticated pages must remain reviewable. Recorded as AD-20.
+
+- `src/features/auth/preview/preview-admin-session.ts` is the only source of the preview identity and marker. It issues **no** access token, sends **no** request, and never contacts an identity provider.
+- The only persisted state is `sessionStorage.preview_admin_session = '1'` — a non-secret marker, not a credential. It must never be extended to hold a token, password, or personal data.
+- Every function starts with `if (!import.meta.env.DEV)`. In a production build the constant is `false`, so the functions return/throw before storage access, and a marker written by hand does not authenticate. The login controls are also gated by `import.meta.env.DEV && previewLogin`.
+- The login page labels it visibly in both languages as a development-only, non-authentication flow; the login card states that permissions are not enforced in the UI and the server stays authoritative.
+- `logout` and the session-expired handler clear the marker along with tokens, so it cannot survive an explicit sign-out.
+- Do **not** use the preview identity to gate data, permissions, or API behavior, and do not describe it as a default account or a bypass in product copy. Delete the module and its i18n strings when real sign-in works.
 
 ---
 
@@ -300,6 +311,26 @@ The backend currently exposes **no upload endpoint**. When one exists:
 - Do not claim malware scanning; that is a backend responsibility.
 - Handle partial failure and allow retry without duplicating documents where the API supports idempotency.
 
+### 10.1 Implemented preview behavior (2026-11-17)
+
+The documents preview uploads nothing; it still follows the client-side rules above so the real implementation can inherit them:
+
+- `src/features/documents/lib/validation.ts` checks extension (`file.name` ends with `.pdf`, case-insensitive), rejects a mismatched non-empty MIME (`file.type` not `application/pdf`), rejects zero bytes, enforces a 10 MB **preview** ceiling, and rejects duplicates by normalized name + size. All checks are labeled as convenience only; copy states the server is authoritative.
+- No `FileReader`, no `arrayBuffer()`, no content inspection, no `URL.createObjectURL`, and no object URLs at all. Filenames are rendered as text with `dir="ltr"` and middle truncation; they are never interpolated into a URL or `href`.
+- Files are never written to `localStorage`, `sessionStorage`, `IndexedDB`, or the Cache API. Only the filename and size reach the in-memory preview store.
+- No HTML, SVG, or script from a file is rendered; there is no content preview.
+- The "uploading" phase is a local timer, and the UI never claims a server received the file.
+
+### 10.2 Data-source credentials (implemented preview 2026-11-17)
+
+No data-source endpoint exists, and the preview must be safe to convert into a real form:
+
+- The password is transient React Hook Form state. On submit `lib/validation.ts` maps the values to `{ connection, hasCredential }`; `DataSourceRecord` has **no** credential field, so a password cannot reach the store.
+- After save the password input is unmounted with the form page, and the details page shows only «ثبت شده — هرگز نمایش داده نمی‌شود». Editing with a blank password keeps `hasCredential`.
+- Mock data, the module store, the URL, console output, `localStorage`/`sessionStorage`, and the DOM after save contain no password, key, or connection string. The browser verification asserts the value is absent from the DOM and storage after the add flow.
+- The form never assembles or displays a connection string, never attempts a driver connection, and never loads a database client library. The connection test is disabled because no endpoint exists; do not simulate a connection result.
+- The backend must encrypt credentials, never return them (write-only on create/update), and redact them from logs; those are backend obligations requested in `Docs/Ai/frontend-api-integration.md` §10.3.
+
 ---
 
 ## 11. Sensitive Data Handling
@@ -312,6 +343,8 @@ The backend currently exposes **no upload endpoint**. When one exists:
 - Avoid caching sensitive API responses in a service worker. No service worker is planned.
 - Show only the fields the API returns. Do not fabricate citations, scores, or page numbers.
 - Redact sensitive values from client logs. In production, client logging should be minimal and structured; no request/response bodies.
+- Model paths, tokenizer paths, API keys, and Qdrant/embedding endpoints are server-only. The settings preview never renders them: Embedding shows «مدیریت‌شده در سرور — قابل نمایش نیست» and General shows only the public API base and environment.
+- Settings drafts (model name, timeout, chunk size, overlap, top-K) are non-secret and still stay in memory; they are never written to storage or sent anywhere.
 
 ---
 

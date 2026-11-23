@@ -1,0 +1,487 @@
+{
+  "runs": {
+    "desktop-fa-light": {
+      "language": "fa",
+      "lang": "fa",
+      "dir": "rtl",
+      "dark": false,
+      "viewportWidth": 1440,
+      "htmlOverflow": false,
+      "bodyOverflow": false,
+      "h1": "اسناد",
+      "previewBadgeVisible": true,
+      "previewNoticeVisible": true,
+      "listFound": true,
+      "listLabel": "فهرست اسناد",
+      "rowCount": 6,
+      "detailLinkCount": 6,
+      "fileNamesWithoutLtr": 0,
+      "badgeCount": 6,
+      "badgesMissingIcon": 0,
+      "actionButtonCount": 12,
+      "actionMinHeight": 36,
+      "longFileName": {
+        "rendered": "rag-assistant-architectu…book-2026-final.pdf",
+        "dir": "ltr"
+      },
+      "staleCopyFound": [],
+      "statusTexts": [
+        "ایندکس‌شده",
+        "در حال پردازش",
+        "در حال تعبیه",
+        "بارگذاری‌شده",
+        "در حال قطعه‌بندی"
+      ]
+    },
+    "desktop-en-light": {
+      "language": "en",
+      "lang": "en",
+      "dir": "ltr",
+      "dark": false,
+      "viewportWidth": 1440,
+      "htmlOverflow": false,
+      "bodyOverflow": false,
+      "h1": "Documents",
+      "previewBadgeVisible": true,
+      "previewNoticeVisible": true,
+      "listFound": true,
+      "listLabel": "Documents",
+      "rowCount": 6,
+      "detailLinkCount": 6,
+      "fileNamesWithoutLtr": 0,
+      "badgeCount": 6,
+      "badgesMissingIcon": 0,
+      "actionButtonCount": 12,
+      "actionMinHeight": 36,
+      "longFileName": {
+        "rendered": "rag-assistant-architectu…book-2026-final.pdf",
+        "dir": "ltr"
+      },
+      "staleCopyFound": [],
+      "statusTexts": [
+        "Indexed",
+        "Processing",
+        "Embedding",
+        "Uploaded",
+        "Chunking"
+      ]
+    },
+    "tablet-fa-light": {
+      "language": "fa",
+      "lang": "fa",
+      "dir": "rtl",
+      "dark": false,
+      "viewportWidth": 768,
+      "htmlOverflow": false,
+      "bodyOverflow": false,
+      "h1": "اسناد",
+      "previewBadgeVisible": true,
+      "previewNoticeVisible": true,
+      "listFound": true,
+      "listLabel": "فهرست اسناد",
+      "rowCount": 6,
+      "detailLinkCount": 6,
+      "fileNamesWithoutLtr": 0,
+      "badgeCount": 6,
+      "badgesMissingIcon": 0,
+      "actionButtonCount": 12,
+      "actionMinHeight": 36,
+      "longFileName": {
+        "rendered": "rag-assistant-architectu…book-2026-final.pdf",
+        "dir": "ltr"
+      },
+      "staleCopyFound": [],
+      "statusTexts": [
+        "ایندکس‌شده",
+        "در حال پردازش",
+        "در حال تعبیه",
+        "بارگذاری‌شده",
+        "در حال قطعه‌بندی"
+      ]
+    },
+    "tablet-en-light": {
+      "language": "en",
+      "lang": "en",
+      "dir": "ltr",
+      "dark": false,
+      "viewportWidth": 768,
+      "htmlOverflow": false,
+      "bodyOverflow": false,
+      "h1": "Documents",
+      "previewBadgeVisible": true,
+      "previewNoticeVisible": true,
+      "listFound": true,
+      "listLabel": "Documents",
+      "rowCount": 6,
+      "detailLinkCount": 6,
+      "fileNamesWithoutLtr": 0,
+      "badgeCount": 6,
+      "badgesMissingIcon": 0,
+      "actionButtonCount": 12,
+      "actionMinHeight": 36,
+      "longFileName": {
+        "rendered": "rag-assistant-architectu…book-2026-final.pdf",
+        "dir": "ltr"
+      },
+      "staleCopyFound": [],
+      "statusTexts": [
+        "Indexed",
+        "Processing",
+        "Embedding",
+        "Uploaded",
+        "Chunking"
+      ]
+    },
+    "mobile-fa-light": {
+      "language": "fa",
+      "lang": "fa",
+      "dir": "rtl",
+      "dark": false,
+      "viewportWidth": 360,
+      "htmlOverflow": false,
+      "bodyOverflow": false,
+      "h1": "اسناد",
+      "previewBadgeVisible": true,
+      "previewNoticeVisible": true,
+      "listFound": true,
+      "listLabel": "فهرست اسناد",
+      "rowCount": 6,
+      "detailLinkCount": 6,
+      "fileNamesWithoutLtr": 0,
+      "badgeCount": 6,
+      "badgesMissingIcon": 0,
+      "actionButtonCount": 12,
+      "actionMinHeight": 44,
+      "longFileName": {
+        "rendered": "rag-assistant-architectu…book-2026-final.pdf",
+        "dir": "ltr"
+      },
+      "staleCopyFound": [],
+      "statusTexts": [
+        "ایندکس‌شده",
+        "در حال پردازش",
+        "در حال تعبیه",
+        "بارگذاری‌شده",
+        "در حال قطعه‌بندی"
+      ]
+    },
+    "mobile-en-light": {
+      "language": "en",
+      "lang": "en",
+      "dir": "ltr",
+      "dark": false,
+      "viewportWidth": 360,
+      "htmlOverflow": false,
+      "bodyOverflow": false,
+      "h1": "Documents",
+      "previewBadgeVisible": true,
+      "previewNoticeVisible": true,
+      "listFound": true,
+      "listLabel": "Documents",
+      "rowCount": 6,
+      "detailLinkCount": 6,
+      "fileNamesWithoutLtr": 0,
+      "badgeCount": 6,
+      "badgesMissingIcon": 0,
+      "actionButtonCount": 12,
+      "actionMinHeight": 44,
+      "longFileName": {
+        "rendered": "rag-assistant-architectu…book-2026-final.pdf",
+        "dir": "ltr"
+      },
+      "staleCopyFound": [],
+      "statusTexts": [
+        "Indexed",
+        "Processing",
+        "Embedding",
+        "Uploaded",
+        "Chunking"
+      ]
+    },
+    "desktop-fa-dark": {
+      "language": "fa",
+      "lang": "fa",
+      "dir": "rtl",
+      "dark": true,
+      "viewportWidth": 1440,
+      "htmlOverflow": false,
+      "bodyOverflow": false,
+      "h1": "اسناد",
+      "previewBadgeVisible": true,
+      "previewNoticeVisible": true,
+      "listFound": true,
+      "listLabel": "فهرست اسناد",
+      "rowCount": 6,
+      "detailLinkCount": 6,
+      "fileNamesWithoutLtr": 0,
+      "badgeCount": 6,
+      "badgesMissingIcon": 0,
+      "actionButtonCount": 12,
+      "actionMinHeight": 36,
+      "longFileName": {
+        "rendered": "rag-assistant-architectu…book-2026-final.pdf",
+        "dir": "ltr"
+      },
+      "staleCopyFound": [],
+      "statusTexts": [
+        "ایندکس‌شده",
+        "در حال پردازش",
+        "در حال تعبیه",
+        "بارگذاری‌شده",
+        "در حال قطعه‌بندی"
+      ]
+    },
+    "desktop-en-dark": {
+      "language": "en",
+      "lang": "en",
+      "dir": "ltr",
+      "dark": true,
+      "viewportWidth": 1440,
+      "htmlOverflow": false,
+      "bodyOverflow": false,
+      "h1": "Documents",
+      "previewBadgeVisible": true,
+      "previewNoticeVisible": true,
+      "listFound": true,
+      "listLabel": "Documents",
+      "rowCount": 6,
+      "detailLinkCount": 6,
+      "fileNamesWithoutLtr": 0,
+      "badgeCount": 6,
+      "badgesMissingIcon": 0,
+      "actionButtonCount": 12,
+      "actionMinHeight": 36,
+      "longFileName": {
+        "rendered": "rag-assistant-architectu…book-2026-final.pdf",
+        "dir": "ltr"
+      },
+      "staleCopyFound": [],
+      "statusTexts": [
+        "Indexed",
+        "Processing",
+        "Embedding",
+        "Uploaded",
+        "Chunking"
+      ]
+    },
+    "mobile-fa-dark": {
+      "language": "fa",
+      "lang": "fa",
+      "dir": "rtl",
+      "dark": true,
+      "viewportWidth": 360,
+      "htmlOverflow": false,
+      "bodyOverflow": false,
+      "h1": "اسناد",
+      "previewBadgeVisible": true,
+      "previewNoticeVisible": true,
+      "listFound": true,
+      "listLabel": "فهرست اسناد",
+      "rowCount": 6,
+      "detailLinkCount": 6,
+      "fileNamesWithoutLtr": 0,
+      "badgeCount": 6,
+      "badgesMissingIcon": 0,
+      "actionButtonCount": 12,
+      "actionMinHeight": 44,
+      "longFileName": {
+        "rendered": "rag-assistant-architectu…book-2026-final.pdf",
+        "dir": "ltr"
+      },
+      "staleCopyFound": [],
+      "statusTexts": [
+        "ایندکس‌شده",
+        "در حال پردازش",
+        "در حال تعبیه",
+        "بارگذاری‌شده",
+        "در حال قطعه‌بندی"
+      ]
+    },
+    "mobile-en-dark": {
+      "language": "en",
+      "lang": "en",
+      "dir": "ltr",
+      "dark": true,
+      "viewportWidth": 360,
+      "htmlOverflow": false,
+      "bodyOverflow": false,
+      "h1": "Documents",
+      "previewBadgeVisible": true,
+      "previewNoticeVisible": true,
+      "listFound": true,
+      "listLabel": "Documents",
+      "rowCount": 6,
+      "detailLinkCount": 6,
+      "fileNamesWithoutLtr": 0,
+      "badgeCount": 6,
+      "badgesMissingIcon": 0,
+      "actionButtonCount": 12,
+      "actionMinHeight": 44,
+      "longFileName": {
+        "rendered": "rag-assistant-architectu…book-2026-final.pdf",
+        "dir": "ltr"
+      },
+      "staleCopyFound": [],
+      "statusTexts": [
+        "Indexed",
+        "Processing",
+        "Embedding",
+        "Uploaded",
+        "Chunking"
+      ]
+    },
+    "details-desktop-fa": {
+      "language": "fa",
+      "lang": "fa",
+      "dir": "rtl",
+      "dark": false,
+      "htmlOverflow": false,
+      "bodyOverflow": false,
+      "h1": "گزارش عملکرد سه‌ماهه.pdf",
+      "h1Dir": "ltr",
+      "metadataFields": 6,
+      "hasProgressBar": false,
+      "progressNoteVisible": true,
+      "previewNoteVisible": true,
+      "retryDisabled": true,
+      "retryTitle": "نقطهٔ پایانی برای تلاش دوبارهٔ پردازش وجود ندارد.",
+      "backLink": true,
+      "staleCopyFound": []
+    },
+    "details-desktop-en": {
+      "language": "en",
+      "lang": "en",
+      "dir": "ltr",
+      "dark": false,
+      "htmlOverflow": false,
+      "bodyOverflow": false,
+      "h1": "گزارش عملکرد سه‌ماهه.pdf",
+      "h1Dir": "ltr",
+      "metadataFields": 6,
+      "hasProgressBar": false,
+      "progressNoteVisible": true,
+      "previewNoteVisible": true,
+      "retryDisabled": true,
+      "retryTitle": "There is no retry-processing endpoint yet.",
+      "backLink": true,
+      "staleCopyFound": []
+    }
+  },
+  "interactions": {
+    "baselineRows": 6,
+    "uploadDrop": {
+      "found": true,
+      "progressbar": true,
+      "ariaValueNow": null,
+      "percentShown": false,
+      "alertText": null,
+      "removeLabels": [
+        "حذف فایل: preview-check.pdf"
+      ]
+    },
+    "addedRow": {
+      "present": true,
+      "statusText": "preview-check.pdf ۲ KB ۲۶ آبان ۱۴۰۵ بارگذاری‌شده نقطهٔ پایانی برای تلاش دوبارهٔ پردازش وجود ندارد.",
+      "announcement": [
+        "preview-check.pdf به فهرست نمایشی افزوده شد."
+      ]
+    },
+    "rejectDrop": {
+      "found": true,
+      "progressbar": false,
+      "ariaValueNow": null,
+      "percentShown": false,
+      "alertText": "فقط فایل PDF پذیرفته می‌شود. فایل را حذف کنید و فایل دیگری انتخاب کنید.",
+      "removeLabels": [
+        "حذف فایل: notes.txt"
+      ]
+    },
+    "search": {
+      "titles": [
+        "security-policy.pdf"
+      ],
+      "location": {
+        "pathname": "/documents",
+        "search": "?q=security",
+        "scrollWidth": 1440,
+        "clientWidth": 1440
+      }
+    },
+    "searchAfterReload": {
+      "location": {
+        "pathname": "/documents",
+        "search": "?q=security",
+        "scrollWidth": 1440,
+        "clientWidth": 1440
+      },
+      "searchValue": "security",
+      "titles": [
+        "security-policy.pdf"
+      ]
+    },
+    "statusFilter": {
+      "rows": 4,
+      "rowsAllIndexed": true
+    },
+    "sortBySize": {
+      "firstTitle": "rag-assistant-architecture-and-deployment-runbook-2026-final.pdf",
+      "location": {
+        "pathname": "/documents",
+        "search": "?sort=size-desc",
+        "scrollWidth": 1440,
+        "clientWidth": 1440
+      }
+    },
+    "pagination": {
+      "rows": 5,
+      "location": {
+        "pathname": "/documents",
+        "search": "?sort=size-desc&page=2",
+        "scrollWidth": 1440,
+        "clientWidth": 1440
+      },
+      "indicator": "صفحهٔ ۲ از ۲"
+    },
+    "backOnFirstPage": {
+      "firstTitle": "rag-assistant-architecture-and-deployment-runbook-2026-final.pdf",
+      "location": {
+        "pathname": "/documents",
+        "search": "?sort=size-desc",
+        "scrollWidth": 1440,
+        "clientWidth": 1440
+      }
+    },
+    "delete": {
+      "target": "rag-assistant-architecture-and-deployment-runbook-2026-final.pdf",
+      "dialogText": "حذف این سند؟ این سند فقط از فهرست نمایشی حذف می‌شود و به سرور فرستاده نمی‌شود. rag-assistant-architecture-and-deployment-runbook-2026-final.pdf انصراف حذف",
+      "rowKeptAfterCancel": true,
+      "goneAfterConfirm": true,
+      "rowsAfter": 6
+    },
+    "devLoading": {
+      "statusLabel": "در حال بارگذاری فهرست اسناد…",
+      "listVisible": false
+    },
+    "devError": {
+      "errorVisible": true,
+      "listVisible": false
+    },
+    "devRecovered": {
+      "listVisible": true,
+      "resultCountText": true
+    },
+    "unknownId": {
+      "notFoundVisible": true,
+      "navVisible": true,
+      "backLink": true
+    },
+    "detailsBeforeDelete": {
+      "h1": "گزارش عملکرد سه‌ماهه.pdf",
+      "progressNoteVisible": true
+    },
+    "detailsDelete": {
+      "pathname": "/documents",
+      "resultCountText": true
+    }
+  }
+}

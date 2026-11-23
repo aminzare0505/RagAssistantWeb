@@ -1,0 +1,49 @@
+{
+  "steps": [
+    {
+      "step": "fa login card",
+      "path": "/login",
+      "dir": "rtl",
+      "previewTitle": true,
+      "previewButton": true,
+      "overflowX": 0
+    },
+    {
+      "step": "fa signed in",
+      "path": "/",
+      "marker": "1",
+      "showsAdmin": true,
+      "showsRole": true,
+      "menuText": "واردشده به‌عنوانadminadmin@example.comنقش: Adminخروج از حساب"
+    },
+    {
+      "step": "fa reload restore",
+      "path": "/",
+      "heading": "چهار ماژول اصلی به‌صورت پیش‌نمایش در دسترس‌اند",
+      "marker": "1"
+    },
+    {
+      "step": "en login 360",
+      "path": "/login",
+      "dir": "ltr",
+      "previewTitle": true,
+      "persianLeft": false,
+      "targetHeight": 44,
+      "overflowX": 0
+    },
+    {
+      "step": "en menu click",
+      "ok": true
+    },
+    {
+      "step": "en logout click",
+      "ok": true
+    },
+    {
+      "step": "en logout",
+      "path": "/login",
+      "marker": null
+    }
+  ],
+  "errors": []
+}

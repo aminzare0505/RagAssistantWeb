@@ -5,6 +5,7 @@ export const TEST_USER = {
   id: 'user-1',
   username: 'admin',
   email: 'admin@example.com',
+  roles: [] as string[],
 } as const;
 
 function base64Url(value: string): string {

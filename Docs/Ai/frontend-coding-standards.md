@@ -1,6 +1,6 @@
 # Frontend Coding Standards — RAG Assistant
 
-> **Status:** Standards for the React application at `frontend/rag-assistant-ui/`. The foundation, design system, authentication, and a mock-data chat UI preview are implemented; other product features are not.
+> **Status:** Standards for the React application at `frontend/rag-assistant-ui/`. The foundation, design system, authentication, and mock-data chat, documents, data-sources, and settings UI previews are implemented. Only authentication calls the backend.
 > **Applies to:** all code under `frontend/rag-assistant-ui/src/` and (later) `frontend/rag-assistant-ui/e2e/`.
 > **Last updated:** 2026-11-16
 >
@@ -215,6 +215,38 @@ export function useConversation(conversationId: string) {
 - `src/features/chat/lib/clipboard.ts` is the only clipboard access; it returns a boolean and never throws, and the caller renders success or failure.
 - `useId` wires the composer label and the attachment hint; icon-only actions get an accessible name from the catalog, not a literal string.
 
+### 5.2 Documents preview patterns (implemented 2026-11-17)
+
+- Pure logic goes in `src/features/documents/lib/` with no React and no DOM access: `validation.ts`, `query.ts` (parse/serialize/filter/sort/paginate), and `format.ts` (cached `Intl` formatters). Hooks orchestrate; they do not contain filtering or sorting rules.
+- URL-owned state: `useDocumentsQuery` reads and writes `useSearchParams` with functional updates and `{ replace: true }`, omits defaults, and resets `page` when a filter, sort, or size changes. Do not mirror this state into `useState`; that is how reload and back/forward break.
+- Cross-route in-memory state uses a module-scoped store plus `useSyncExternalStore` (`mock/document-preview-store.ts`). This is the accepted exception to "do not create a global store for a single screen" because the list and the details route are separate mounts that must agree. The store exposes subscribe/get read functions and explicit mutators; it is temporary and is deleted with the mock layer.
+- Simulated work returns a cancel function (`schedulePreviewUpload`), and the hook keeps cancels in a ref `Map`, clearing them on row removal and on unmount. Never leave a timer untracked.
+- Development-only surfaces are gated with `import.meta.env.DEV` in the component so the bundler can drop the branch; verify elimination in `dist`, do not assume it.
+- Validation returns a discriminated result (`{ ok: true } | { ok: false, error: ... }`) with the first failure winning, and the UI maps the error code through the catalog rather than interpolating a string.
+- `Progress` supports determinate and indeterminate modes via `value: number | null`. Pass `null` when there is no real measurement; never compute a fake number.
+- Filename cells set `dir="ltr"` explicitly and truncate in the middle so the extension survives; do not rely on CSS-only ellipsis for names.
+
+### 5.3 Data-sources and settings preview patterns (implemented 2026-11-17)
+
+- Both previews reuse the documents pattern: a module-scoped store plus `useSyncExternalStore`, with subscribe/get/mutate functions and reset helpers (`data-source-preview-store.ts`, `settings-draft-store.ts`). The stores are temporary and deleted with the mock layers.
+- Transient-secret forms follow a strict boundary: `DataSourceFormValues` includes `password`, but a pure builder in `lib/validation.ts` maps values to `{ connection, hasCredential }`. The record type has no credential field, so a password cannot reach the store by construction, not by convention.
+- The edit form distinguishes create from update: the password is required only on create, and a blank value on edit means "keep the current credential". Never prefill it.
+- The schema browser is one component with a module-level flattening helper: `role="tree"`/`treeitem`/`group`, `aria-expanded`, `aria-level`, `aria-selected`, roving tabindex, and keyboard handling on each item (not on the container, which would satisfy lint but not the tree pattern).
+- Settings schemas use catalog message groups (`createAiSchema(t.settings.ai.validation)`), mirroring `createLoginSchema`, so no message string is hardcoded. Defaults in `settings-defaults.ts` carry file-level citations next to each value.
+- Section navigation uses `NavLink` with `end` on the base `settings` path so `/settings/ai` does not also mark General active. Unknown sections render a shared `EmptyState` inside the shell instead of redirecting.
+- Grid/flex containers that hold horizontally scrollable tab strips need `min-w-0`; without it the grid item's content width can push the whole page wider than the viewport at 360 px (found during browser verification).
+- The shared `PreviewStateControl` and `src/lib/format-date.ts` are the promoted versions of the documents-local implementations; new preview lists use them instead of duplicating DEV gating or formatter caches.
+
+### 5.4 Development preview sign-in pattern (implemented 2026-11-17)
+
+- A fake identity that exists to unblock page review belongs in `features/auth/preview/`, never in the real session module. It lives beside `auth-provider` but is not part of the token flow.
+- Gate every read and write of the preview marker with `if (!import.meta.env.DEV) return ...`. Guarding only the UI is not enough: an unguarded `sessionStorage` key survives into `dist` and can be set by hand in production. After any change here, grep `dist` for the marker key and the preview user id.
+- Storage access is wrapped in `try`/`catch`; a blocked `sessionStorage` (privacy mode, sandboxed iframe) must degrade to "no preview session", not throw during provider init.
+- `previewLogin` clears the query cache and any real tokens before setting the preview user, and `logout` plus the session-expiry handler clear the preview marker. The two session sources must never be simultaneously true.
+- Making a context property conditional requires a conditional spread (`...(import.meta.env.DEV ? { previewLogin } : {})`), because `exactOptionalPropertyTypes` rejects `previewLogin: undefined`.
+- The preview role (`Admin`) is display-only. Never read it in a guard, a menu visibility check, or any authorization decision; those still depend on session state, and real authorization is the backend's.
+- Label the surface in the UI in both languages ("Preview sign-in (development only)", "ورود آزمایشی (فقط توسعه)"). Tests assert that it issues no token and makes no request, so a future change cannot quietly turn it into a login.
+
 ---
 
 ## 6. Separation of Concerns
@@ -232,7 +264,7 @@ export function useConversation(conversationId: string) {
 
 Additional rules:
 
-- UI formatting (numbers, dates) lives in tested helpers: `src/lib/` for cross-feature helpers, or a feature `lib/` slice when it is feature-specific (the chat preview uses `src/features/chat/lib/format.ts`). Promote a helper to `src/lib/` only when a second feature needs it.
+- UI formatting (numbers, dates, bytes) lives in tested helpers: `src/lib/` for cross-feature helpers, or a feature `lib/` slice when it is feature-specific. Date formatting is shared through `src/lib/format-date.ts` (chat, documents, data sources); byte/number/truncation helpers remain in `features/documents/lib/format.ts`. Promote a helper to `src/lib/` once a second feature needs it.
 - Authorization decisions are never made in the client. Permission checks only decide whether to render a hint.
 - Do not reimplement backend validation as the source of truth. Client-side Zod schemas improve UX; the backend response remains authoritative.
 - Error translation (status/envelope → Persian message) lives in one place.
@@ -268,6 +300,7 @@ Prefer duplication of three similar lines over a premature helper. Move code to 
 - Disable submit while pending; keep the user's input on failure.
 - Never log form values; never put passwords into query strings, URLs, or error reports.
 - Password fields must not be prefilled from storage.
+- When a form handles a secret that must not persist, keep it in form state only and map the submitted values to a credential-free record type. The type system should make the leak impossible, not just discouraged (see the data-source form).
 - File inputs are not controlled; handle them with a dedicated upload component.
 
 Implemented reference form (2026-11-16): `src/features/auth/routes/login-page.tsx` with `react-hook-form@7.66.0`, a Zod `loginSchema`, and `zodResolver@5.2.2`. It demonstrates the required pattern:
@@ -363,6 +396,8 @@ Implemented reference form (2026-11-16): `src/features/auth/routes/login-page.ts
 | `index` as React key for dynamic lists | Incorrect reconciliation |
 | Suppressing ESLint/TS rules without justification | Hidden defects |
 | Spreading mock data beyond a feature's `mock/` folder or hiding it as if it were API data | Fake integration, accidental production data |
+| Fabricated progress percentages, upload counts, or processing phases | Misrepresents backend behavior |
+| Shipping dev-only controls without an `import.meta.env.DEV` guard | Debug UI in production |
 | `window.location.href` for internal navigation | Full reload, loses state |
 | Reading `document.cookie` or `localStorage` for auth | Unsupported token model |
 

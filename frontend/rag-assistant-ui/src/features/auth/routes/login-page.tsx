@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useEffect, useId, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Navigate, useSearchParams } from 'react-router';
@@ -18,7 +18,7 @@ import { useAuth } from '../use-auth';
 
 export function LoginPage() {
   const { t } = useLanguage();
-  const { status, sessionEndedReason, login } = useAuth();
+  const { status, sessionEndedReason, login, previewLogin } = useAuth();
   const [searchParams] = useSearchParams();
   const returnTo = safeReturnTo(searchParams.get('returnTo'));
   const [formError, setFormError] = useState<string | null>(null);
@@ -161,6 +161,27 @@ export function LoginPage() {
           </form>
         </div>
       </Card>
+
+      {import.meta.env.DEV && previewLogin ? (
+        <Card className="mt-4 border-dashed p-4">
+          <p className="text-sm font-medium">{t.auth.previewTitle}</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            {t.auth.previewDescription}
+          </p>
+          <Button
+            type="button"
+            variant="secondary"
+            className="mt-3 h-11 w-full"
+            onClick={previewLogin}
+          >
+            <ShieldCheck aria-hidden />
+            {t.auth.previewSignIn}
+          </Button>
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">
+            {t.auth.previewPermissionsNote}
+          </p>
+        </Card>
+      ) : null}
 
       <p className="mt-6 text-center text-xs text-muted-foreground">{t.appTagline}</p>
     </LoginShell>

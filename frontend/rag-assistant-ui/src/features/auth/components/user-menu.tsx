@@ -34,6 +34,11 @@ export function UserMenu() {
               {user.email}
             </span>
           ) : null}
+          {user?.roles.length ? (
+            <span className="block truncate text-xs text-muted-foreground">
+              {t.auth.rolesLabel}: <span dir="ltr">{user.roles.join(', ')}</span>
+            </span>
+          ) : null}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={logout}>

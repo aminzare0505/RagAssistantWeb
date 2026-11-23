@@ -119,7 +119,7 @@ Rules:
 - Do not disable lint rules to pass the gate.
 - Do not claim a build succeeded without executing it.
 - Record the exact commands and results in the task report.
-- The backend solution now **builds** (`dotnet build RagAssistant.Api.slnx` → 0 errors at 2026-11-16), but it **cannot start**: `Authentication:Jwt:SecretKey` is shorter than the required 32 characters, so `dotnet run` throws before listening. Real API and E2E verification therefore remain impossible. State this rather than mocking the backend and calling it verified.
+- The backend solution **built** (`dotnet build RagAssistant.Api.slnx` → 0 errors at 2026-11-16). A `dotnet run` attempt on 2026-11-17 failed JWT secret validation, but the API's HTTPS Swagger UI and OpenAPI document responded on 2026-11-22. Confirm current runtime reachability before reporting a blocker. A successful Swagger/proxy response does not verify login/token behavior or the unimplemented feature contracts.
 
 Database, Qdrant, Ollama, and model verification are backend concerns and are **never** performed from this repository.
 
@@ -355,6 +355,83 @@ Deliberately not done:
 - Markdown tables/GFM (`remark-gfm` not approved/installed).
 - Retranslating already-seeded mock message content when the language changes.
 - Playwright/E2E and live-API verification (no runnable backend).
+
+## 12.4 Documents Interface Record
+
+Task 5 was approved and implemented on 2026-11-17. It replaced the Documents placeholder with a UI preview; no backend was modified, no endpoint or DTO was invented, and the feature makes no network calls.
+
+Completed:
+
+1. Preview view models in `features/documents/types.ts`, explicit that they are not wire DTOs.
+2. Pure helpers: `lib/validation.ts` (PDF/empty/10 MB/duplicate), `lib/query.ts` (parse/serialize/filter/sort/paginate), `lib/format.ts` (bytes, locale dates, middle truncation).
+3. Isolated mock layer: 11 deterministic records, a module-scoped store consumed through `useSyncExternalStore`, and a cancellable 300 ms simulated upload phase. Every mock file carries a delete-with-the-contract header.
+4. Hooks: URL-owned query state, derived list pipeline plus DEV-only preview state, and the upload queue with validation and timer cleanup.
+5. Components: upload drop button with picker and `aria-live`, per-file rows with indeterminate progress, toolbar (search + three filters + page size), list/row grid, status badges, delete dialog, pagination, skeletons, DEV state control, and details panels; new `Progress`, `Badge`, and `Select` primitives.
+6. Routes: `/documents` replaced the placeholder; `/documents/:documentId` added as a lazy sibling with an in-shell not-found state.
+7. Documents catalog added to both i18n files, including catalog functions for word order (`resultCount`, `pageIndicator`, `sizeLimitNote`) and an English-copy regression test.
+8. Tests expanded from 68 to 142 across 17 files (74 new: 9 validation + 22 query + 10 format + 10 upload + 15 page + 7 details + 1 router).
+9. Gates executed: `typecheck`, `lint`, `test` (142 passed), `build` (succeeded); confirmed the DEV control is absent from the built documents chunk.
+10. Browser verification with headless Chrome over CDP at 1440/768/360 px in `fa`/`en` and light/dark plus the details route; twelve screenshots and `verification-results.json` under `Docs/Ai/reviews/assets/2026-11-17-documents/`.
+11. Documentation updated: architecture, API integration (§9.2 contract request), UI/UX, testing, security, coding standards, workflow, `AGENTS.md`, `PROJECT_CONTEXT.md`, changelog, and a review report.
+
+Deliberately not done:
+
+- Any HTTP call, endpoint, DTO, query key, persistence, upload, processing, indexing, or deletion on a server. The documents contract does not exist and the API cannot start.
+- Percentage progress: no record reports a measurement, so the bar stays indeterminate and the details view says progress is unavailable.
+- Retry: the control is disabled with an explanation because there is no endpoint.
+- Real loading/error states: they are reachable only through the DEV control, which is removed from production builds.
+- Live-API, E2E, screen-reader, and non-Chromium verification.
+
+---
+
+## 12.5 Data Sources and Settings Record
+
+Task 6 was approved and implemented on 2026-11-17. It replaced the last two `FeaturePlaceholder` routes with UI previews; no backend was modified, no endpoint, DTO, source type, provider, or configuration option was invented, and both features make no network calls.
+
+Completed:
+
+1. Shared hoists (rule of three): `src/lib/format-date.ts` (locale-cached date formatting used by chat, documents, and data sources) and `src/components/shared/preview-state-control.tsx` (generalized DEV-only ready/loading/error switch). Documents delegates to both; `FeaturePlaceholder` is deleted.
+2. Data-source view models (`types.ts`, explicitly not wire DTOs), Zod create/edit schemas and password-free payload builders (`lib/validation.ts`), and a one-shot announcement helper.
+3. Isolated data-source mock layer: five deterministic records, example schema trees (including a null-schema record), and a module-scoped store consumed through `useSyncExternalStore`; every file carries a delete-with-the-contract header.
+4. Data-source components: labelled list grid/stacked cards, icon+text status badge, delete dialog, connection fields with password toggle, RHF form, keyboard-operable schema tree, and skeleton rows.
+5. Data-source routes: `/data-sources`, `/data-sources/new` (before `:sourceId`), `/data-sources/:sourceId`, `/data-sources/:sourceId/edit`, all lazy; unknown ids render in-shell not-found states.
+6. Settings model: section ids, source-verified defaults with file citations, AI and retrieval Zod schemas with catalog message groups, a session-only draft store, and its hook.
+7. Settings UI: `/settings` + `/settings/:section` with a `NavLink` section layout; General read-only, Appearance real (existing providers), AI and Retrieval validated in-memory drafts, Embedding read-only server-managed, similarity threshold disabled; unknown section renders an in-shell not-found state.
+8. Both catalogs added to `fa`/`en`; the dead `features` block removed; home copy refreshed; router tests updated.
+9. Tests expanded from 142 to 220 across 26 files (78 new: 11 validation + 6 store + 7 schema browser + 10 list + 10 form + 9 details + 8 settings schema + 5 settings store + 12 settings route).
+10. Gates executed: `typecheck`, `lint`, `test` (220 passed), `build` (succeeded); `npm run preview` plus headless Chrome confirmed the DEV control is absent from rendered production output (i18n DEV labels still ship in the shared chunk).
+11. Browser verification with headless Chrome over CDP: 16 screenshots across 1440/768/360 px, `fa`/`en`, light/dark, plus details, form errors, delete dialog, and every settings section; all structural checks pass after fixing a 105 px settings-nav overflow at 360 px with `min-w-0`. Raw results in `verification-report.json` (`errors: []`).
+12. Documentation updated: architecture, API integration (§10 rewritten with the exact contracts needed), UI/UX (§10/§11 and preview states), testing standards (coverage and harness rules), security standards (transient credentials, server-only settings), coding standards (patterns and forms), workflow, `AGENTS.md`, `PROJECT_CONTEXT.md`, changelog, and a review report.
+
+Deliberately not done:
+
+- Any HTTP call, endpoint, DTO, source-type registry, connection test, schema request, settings read/write, or persistence. Neither contract exists and the API cannot start.
+- Storing, re-displaying, logging, or sending credentials. Only `hasCredential` is persisted in memory for the tab's lifetime.
+- Simulated connection results, invented table schemas presented as real, or a fake success message for server-side saves.
+- Showing embedding model/tokenizer paths, endpoints, or keys; supporting a similarity threshold the backend does not have; offering providers or source types the backend does not implement.
+- Live-API, E2E, screen-reader, and non-Chromium verification.
+
+---
+
+## 12.6 Development Preview Sign-In Record
+
+Requested on 2026-11-17 so the authenticated pages could be reviewed before backend integration ("set a default user to login and with admin permission for test"). Implemented as a development-only surface; the real session, token, and refresh flow are untouched.
+
+Completed:
+
+1. `features/auth/preview/preview-admin-session.ts` holds the marker key, the `admin` identity with the `Admin` role, and read/start/clear functions, each returning inert values or throwing when `import.meta.env.DEV` is false. Storage access is wrapped so a blocked `sessionStorage` cannot break provider init.
+2. `AuthUser` gained `roles`, and `jwt.ts` decodes role claims from both the short `role` and the full WS-2008 URI into a de-duplicated array. This is display only; nothing authorizes on it.
+3. `auth-provider` restores the preview session alongside a real token, clears tokens and the query cache on `previewLogin`, and clears the preview marker on logout and on session expiry. The context exposes `previewLogin` only in development builds through a conditional spread.
+4. `login-page` renders a dashed development-only card with a full-width button and a bilingual note that the role grants nothing beyond this browser; `user-menu` shows decoded roles.
+5. Tests: 4 preview-session tests plus provider, login-page, and jwt cases — 230 tests / 27 files, all passing.
+6. Gates: typecheck, lint, test (230), build pass. `dist` contains no marker key and no preview id; only the catalog copy ships, as with the DEV-state labels. `npm run preview` plus headless Chrome showed no preview card, and a hand-written marker left the app on `/login`.
+7. Browser verification against the dev server: preview sign-in from `/login?returnTo=/settings`, account menu showing `admin` / role `Admin`, no token issued, `errors: []`; three screenshots under `Docs/Ai/reviews/assets/2026-11-17-preview-admin/`.
+8. Documentation updated: architecture (preview subsection, AD-20, state table), security (§4.7), API integration (not a contract), testing standards (§5.7.1), coding standards (§5.4), `AGENTS.md`, `PROJECT_CONTEXT.md`, changelog, and a review report.
+
+Deliberately not done:
+
+- Any token, request, cookie, credential, or persisted identity; any server-side role or permission; any change to guards so that they check a role.
+- Treating the preview as authentication, or describing it as such in documentation.
 
 ---
 

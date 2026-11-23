@@ -41,6 +41,14 @@ export const routes: RouteObject[] = [
                 },
               },
               {
+                path: 'documents/:documentId',
+                hydrateFallbackElement,
+                lazy: async () => {
+                  const { DocumentDetailsPage } = await import('@/features/documents');
+                  return { Component: DocumentDetailsPage };
+                },
+              },
+              {
                 path: 'data-sources',
                 hydrateFallbackElement,
                 lazy: async () => {
@@ -49,7 +57,39 @@ export const routes: RouteObject[] = [
                 },
               },
               {
+                path: 'data-sources/new',
+                hydrateFallbackElement,
+                lazy: async () => {
+                  const { DataSourceFormPage } = await import('@/features/data-sources');
+                  return { Component: DataSourceFormPage };
+                },
+              },
+              {
+                path: 'data-sources/:sourceId',
+                hydrateFallbackElement,
+                lazy: async () => {
+                  const { DataSourceDetailsPage } = await import('@/features/data-sources');
+                  return { Component: DataSourceDetailsPage };
+                },
+              },
+              {
+                path: 'data-sources/:sourceId/edit',
+                hydrateFallbackElement,
+                lazy: async () => {
+                  const { DataSourceFormPage } = await import('@/features/data-sources');
+                  return { Component: DataSourceFormPage };
+                },
+              },
+              {
                 path: 'settings',
+                hydrateFallbackElement,
+                lazy: async () => {
+                  const { SettingsPage } = await import('@/features/settings');
+                  return { Component: SettingsPage };
+                },
+              },
+              {
+                path: 'settings/:section',
                 hydrateFallbackElement,
                 lazy: async () => {
                   const { SettingsPage } = await import('@/features/settings');

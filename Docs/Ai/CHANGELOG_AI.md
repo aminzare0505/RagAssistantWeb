@@ -286,3 +286,21 @@ Prepared the documentation baseline for a React + TypeScript frontend. Verified 
 **Follow-ups:**
 - Backend: fix the build, standardize the error contract, define streaming and citation contracts, and add the missing feature endpoints.
 - Frontend: await approval, then bootstrap the application and verify the peer dependency graph.
+
+## 2026-11-21 — Document frontend API requirements
+
+**Scope:** Documentation-only, frontend inspection. Added `Docs/BACKEND_API_REQUIREMENTS.md` with current auth calls and suggested contracts for mocked chat, documents, data sources, and settings integrations. Unspecified contract details are marked **TBD**. No application or backend source was changed; no tests or builds were run.
+
+**Changed files:** `Docs/BACKEND_API_REQUIREMENTS.md` (created); `Docs/Ai/CHANGELOG_AI.md` (modified).
+
+**Known limitations:** Suggested endpoints and DTOs are proposals derived from frontend UI needs, not backend-verified contracts. Backend authorization and several request/response details remain TBD.
+
+## 2026-11-22 — Point the development API proxy at the HTTPS backend
+
+**Scope:** Frontend development configuration and integration documentation. Vite now forwards same-origin `/api` requests to `https://localhost:7189`, matching the backend HTTPS profile. The Swagger page path is documented as documentation, not an API base URL. Certificate verification is disabled only on the localhost development proxy to support the ASP.NET development certificate.
+
+**Changed files:** `frontend/rag-assistant-ui/vite.config.ts`; `Docs/Ai/frontend-architecture.md`; `Docs/Ai/frontend-api-integration.md`; `Docs/Ai/frontend-workflow.md`; `Docs/Ai/frontend-testing-standards.md`; `PROJECT_CONTEXT.md`; `Docs/Ai/CHANGELOG_AI.md`; `Docs/Ai/reviews/2026-11-22-https-backend-proxy.md`.
+
+**Validation:** `npm run build` — passed (`tsc -b && vite build`; existing large-chunk advisory). Read-only checks returned HTTP 200 from the Swagger UI and OpenAPI document. GET `/api/auth/login` via the running Vite proxy returned HTTP 405, as expected for the POST-only route; this confirms proxy reachability, not login/token behavior. Backend configuration and credentials were not inspected or changed.
+
+**Known limitations:** Only the existing authentication calls use the API. Chat, documents, data sources, and settings remain UI previews because their backend contracts are unavailable.

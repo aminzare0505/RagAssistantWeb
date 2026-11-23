@@ -13,4 +13,6 @@ export interface AuthContextValue {
   sessionEndedReason: SessionEndedReason;
   login: (credentials: Credentials) => Promise<void>;
   logout: () => void;
+  /** Present only in development builds; signs in the local preview admin. */
+  previewLogin?: () => void;
 }

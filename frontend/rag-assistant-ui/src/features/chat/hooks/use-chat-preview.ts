@@ -219,7 +219,7 @@ export function useChatPreview() {
     }
     return store.conversations.filter(
       (conversation) =>
-        conversation.title.toLocaleLowerCase().includes(query) ||
+        conversation.title?.toLocaleLowerCase().includes(query) ||
         conversation.messages.some((message) =>
           message.content.toLocaleLowerCase().includes(query),
         ),

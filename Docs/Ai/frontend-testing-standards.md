@@ -207,7 +207,67 @@ Required shell scenarios (implemented in `src/app/preferences.test.tsx` and `src
 
 Mock data is not a fixture of the transport; no test asserts a chat request because none exists. Do not add a fake `fetch` expectation for chat and call it integration coverage.
 
-### 5.6 Browser verification for visual UI
+### 5.6 Documents preview coverage (implemented 2026-11-17)
+
+74 new tests across six documents files plus one router test (suite total 142 tests / 17 files):
+
+- `src/features/documents/lib/validation.test.ts` (9): valid PDF, uppercase `.PDF`, wrong extension, `.pdf` with a foreign MIME, empty MIME accepted, zero bytes, oversize, duplicate in the queue, and duplicate against the preview list. First failure wins.
+- `src/features/documents/lib/query.test.ts` (22): case/whitespace-insensitive search, status and type filters, combined filters, collator name order, all six sorts via `it.each`, stable ordering, immutable input, pagination totals/slicing/clamping, fallback page size, and parse/serialize round-trips that omit defaults.
+- `src/features/documents/lib/format.test.ts` (10): byte units, Persian digits, zero, invalid ISO input, and middle truncation that preserves the extension without touching short names.
+- `src/features/documents/components/document-upload.test.tsx` (10): accessible hints, picker with one and multiple files, `.txt` rejection (asserted inside `role="alert"` so shared strings cannot produce a false pass), oversize, duplicates, uploading → done with real timers and `waitFor`, adding to the store, remove/cancel, `fireEvent.drop` with `{ dataTransfer: { files } }`, and the dropzone being a real button.
+- `src/features/documents/documents-page.test.tsx` (15): banner and rows, visible status text, `dir="ltr"` filenames and icon+text badges, search updating both URL and list, filters, sort, pagination and URL, restoring state from the URL, filtered-empty, empty, DEV loading/error, delete cancel/confirm, disabled retry, and an English-copy regression that fails if Persian documents copy leaks.
+- `src/features/documents/routes/document-details-page.test.tsx` (7): metadata, absent progress plus the explanatory note, a determinate bar when progress is injected, delete navigating back, back link, unknown id, and disabled retry.
+- `src/app/router.test.tsx` (modified): the documents route asserts the search field and drop control exist and that no "not implemented" copy renders; the placeholder assertion moved to data sources.
+
+Harness rules learned here:
+
+- Call `resetDocumentPreviewStore()` in `beforeEach`; the store is module-scoped and leaks across tests otherwise.
+- Use `renderApp({ initialPath: '/documents?status=indexed&page=2' })` and assert `router.state.location.search` for URL-owned state.
+- Use `userEvent.setup({ applyAccept: false })` when a test must reach a type-rejection path that the picker would otherwise filter out.
+- No `URL.createObjectURL` stub is needed because the feature never creates object URLs; verify by grep instead of guarding defensively.
+- Do not use the browser to prove what jsdom can assert (labels, `aria-live`, `aria-valuenow`); do not use jsdom to prove layout, RTL, or theme.
+
+Mock data is not a fixture of the transport; no test asserts a documents request because none exists.
+
+### 5.7 Data sources and settings preview coverage (implemented 2026-11-17)
+
+78 new tests across nine files plus router edits (suite total at that point: 220 tests / 26 files):
+
+- `src/features/data-sources/lib/validation.test.ts` (11): valid input, trimming via `schema.parse`, short name, duplicate against the store excluding the edited id, hostname rejection, port bounds and non-integers, missing database/username, password required on create, optional on edit, and payload builders that never copy the password.
+- `src/features/data-sources/mock/data-source-preview-store.test.ts` (6): five seeded records with no credential keys, subscribe notifications, add/update/remove, reset/clear, and `useSyncExternalStore`-compatible snapshots.
+- `src/features/data-sources/components/schema-browser.test.tsx` (7): tree/treeitem/group roles, nine visible items for `src-01`, click collapse/expand, Arrow/Home/End/Enter behavior and roving tabindex, nullability text, and the null-schema empty state.
+- `src/features/data-sources/routes/data-sources-page.test.tsx` (10): banner and five rows, icon+text status badges and LTR hosts, add link, delete cancel/confirm, DEV loading/error, empty state, English copy regression via the labelled list, and unknown-id not-found.
+- `src/features/data-sources/routes/data-source-form-page.test.tsx` (10): six empty-field errors, port 70000 rejection, duplicate name, create → list and details with announcement, edit prefill and a single SQL Server option, blank password keeps `hasCredential`, password absent from DOM/store/storage after save, cancel, back link, and unknown edit id.
+- `src/features/data-sources/routes/data-source-details-page.test.tsx` (9): metadata and localized dates, LTR connection values, credential configured and never shown, disabled test connection with reason, schema tree contents, empty schema on `src-05`, edit link, delete returning to the list, and unknown id.
+- `src/features/settings/lib/settings-schema.test.ts` (8): defaults valid, model trim/required/max length, timeout bounds, chunk bounds, overlap < chunk, fractional values rejected, and top-K bounds.
+- `src/features/settings/mock/settings-draft-store.test.ts` (5): seeded defaults, AI and retrieval saves are isolated, per-section reset, full reset, and unsubscribe.
+- `src/features/settings/routes/settings-page.test.tsx` (12): General read-only values, nav `aria-current` and navigation, dark theme applied and persisted, language switch to `en`/LTR, AI validation and session-only save, AI reset, AI preview and fixed Ollama provider, Embedding server-managed rows with no textbox, retrieval defaults with disabled similarity, overlap error, unknown section, and English copy regression.
+- `src/app/router.test.tsx` (modified): the data-sources route renders the list, the settings route renders General navigation, and the unknown-section state renders; the placeholder assertion is gone.
+
+Harness rules learned here:
+
+- Call `resetDataSourcePreviewStore()` and `resetSettingsDraftStore()` in `beforeEach`.
+- After `waitFor(pathname)`, use `findBy*`/`findByRole` for the destination UI: `waitFor` can resolve before React commits the lazy route.
+- Assert duplicate-prone copy with `getAllByText` or scope with `within(nav)`/`within(tree)`.
+- The details delete button has the plain accessible name `حذف منبع داده`; the row buttons carry per-source labels.
+- `src/test/setup.ts` sets `configure({ asyncUtilTimeout: 3000 })` so lazy routes stay reliable under full-suite load.
+- No network or object-URL stubs are needed; a grep proves the features contain no `fetch`, `axios`, storage, or connection string.
+
+### 5.7.1 Development preview sign-in coverage (implemented 2026-11-17)
+
+10 new tests across three files (suite total 230 tests / 27 files):
+
+- `src/features/auth/preview/preview-admin-session.test.ts` (4): no session before start, a started session exposes the `admin` identity with the `Admin` role and no access token, read-back, and clear.
+- `src/features/auth/auth-provider.test.tsx` (+3): the preview sign-in authenticates without calling `fetch`, the marker restores the session on remount, and logout clears the marker. The existing provider tests are unchanged; role claims are covered in `jwt.test.ts`.
+- `src/features/auth/routes/login-page.test.tsx` (+1): the labelled preview action signs in and returns to `returnTo` with no request and no refresh token written.
+- `src/auth/jwt.test.ts` (+2): role claims are read from both `role` and the `ClaimTypes.Role` URI with de-duplication, and missing claims yield `roles: []`.
+
+Notes:
+
+- Vitest runs with `import.meta.env.DEV === true`, so the preview path is exercised normally. The production guard cannot be unit-tested through `import.meta.env`; it is verified against `dist` and `npm run preview` instead (no preview card, no marker key in the bundle, a hand-written marker does not authenticate).
+- Tests must never assert that preview sign-in is real authentication; assert the absence of a token and of a network call.
+
+### 5.8 Browser verification for visual UI
 
 Component tests do not prove layout, RTL, or theme behavior. When a task changes visual layout:
 
@@ -334,8 +394,14 @@ Status legend: **✔ implemented** (UI preview with mock data), **— not applic
 - Per-file upload progress and failure states (when an endpoint exists).
 - Processing status polling stops on terminal state and on unmount.
 - Delete requires confirmation and surfaces failure.
+- **Implemented now (preview):** PDF/empty/oversize/duplicate validation, indeterminate progress with no percentage, upload → `uploaded` never advancing, URL-owned search/filter/sort/pagination surviving reload, delete cancel/confirm, disabled retry, details progress absent unless injected, and an English-copy regression.
 
-### 8.5 Forms
+### 8.5 Data sources and settings (preview)
+
+- **Implemented now (preview):** add/edit validation with inline errors and `aria-invalid`; duplicate-name and port-bound rejection; create and edit navigating to details; blank password keeping `hasCredential`; password absent from DOM/store/storage after save; delete cancel/confirm; disabled connection test with reason; schema tree mouse and keyboard operation; DEV loading/error/empty states; appearance persistence across reload; AI/retrieval session-only save/reset; overlap ≥ chunk rejection; disabled similarity threshold; unknown routes.
+- **When contracts exist:** connection-failure mapping from the test endpoint, server-side duplicate/schema errors preserving input, credential rotation with a never-returned secret, and settings audit/validation responses.
+
+### 8.6 Forms
 
 - Required-field errors appear next to fields.
 - Invalid values are not submitted.
@@ -415,7 +481,7 @@ export default defineConfig({
 - Persist the resulting refresh token into `sessionStorage` via `page.addInitScript` for the base URL.
 - Do not hardcode credentials. Read them from an untracked `.env.e2e.local` or CI secrets.
 - Never run E2E against production or a shared database.
-- The backend builds but cannot start (JWT secret < 32 chars); E2E against the real API is **blocked**. Do not substitute a fake backend and call the flow verified.
+- The backend previously failed startup due to JWT secret validation. On 2026-11-22 the HTTPS Swagger UI and OpenAPI document responded, but no authenticated flow was exercised. Recheck backend availability before each integration run; do not substitute a fake backend and call the flow verified.
 
 ### 10.4 Determinism
 

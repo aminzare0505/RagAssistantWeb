@@ -233,7 +233,7 @@ Examples (chat empty states are implemented with these roles):
 | No messages | «سؤال خود را درباره اسناد بپرسید.» | suggestion buttons / focus composer |
 | No documents | «هنوز سندی بارگذاری نشده است.» | «بارگذاری سند» |
 | No sources for a message | «منبعی برای این پاسخ ثبت نشده است.» | — |
-| No data sources | «منبع داده‌ای پیکربندی نشده است.» | «افزودن منبع» |
+| No data sources | «منبع داده‌ای پیکربندی نشده است.» | «افزودن منبع» (implemented, with the preview badge) |
 | Search with no results | «نتیجه‌ای یافت نشد.» | clear filters |
 
 Do not use empty states to imply functionality that is not implemented.
@@ -260,6 +260,12 @@ Do not use empty states to imply functionality that is not implemented.
 - Submit shows a spinner and is disabled while pending, carrying `aria-busy` on the form.
 - The account menu in the header shows the display name and email from the token (display only) and offers sign-out. Sign-out returns to `/login` without a confirmation step because it is non-destructive and reversible.
 - No registration screen exists: the backend has no endpoint. Do not add a disabled register link that implies it will work.
+
+### 7.5 Preview states (implemented 2026-11-17)
+
+- Documents, data sources, and any future preview list share `src/components/shared/preview-state-control.tsx`: a dashed, labelled `import.meta.env.DEV` switch with ready/loading/error buttons (`aria-pressed`) and a reset action.
+- In development it makes skeleton and error surfaces reachable without faking a request. In production the component returns `null`, so the control is absent from rendered output; the i18n labels still ship in the shared catalog chunk.
+- Preview error surfaces use the shared `ErrorState` with an honest "retry the preview" action; they never present a simulated server response.
 
 ---
 
@@ -325,41 +331,62 @@ Do not use empty states to imply functionality that is not implemented.
 
 ## 9. Document Upload Interface
 
-- Dropzone plus file picker; the whole zone is keyboard-activatable.
+> **Implemented as a preview (2026-11-17).** §9 exists as UI with no backend: files never leave the browser, the "uploading" phase is a 300 ms cancellable timer, and adding a file creates an in-memory `uploaded` record that never advances. The PDF-only rule and the 10 MB ceiling are preview UX decisions, not backend facts; copy states that the server validates. Strip the honesty notices only when the real contract replaces the mock layer.
+
+- Dropzone plus file picker; the whole zone is a keyboard-activatable `<button>`, so Enter/Space work without extra key handlers.
 - Accepted type: PDF for the current backend. Show the constraint before upload.
 - Show max size only when the backend documents it; otherwise state that the server validates size.
-- Per-file row: name, size, progress, status (`در انتظار`, `در حال بارگذاری`, `در حال پردازش`, `آماده`, `خطا`), retry/remove.
+- Per-file row: name (LTR, middle-truncated), size, progress, status (`در انتظار`, `در حال بررسی`, `در حال بارگذاری`, `آماده`, `خطا`), add/remove.
 - Upload progress requires `XMLHttpRequest` (or a streaming upload API); `fetch` does not expose upload progress. Encapsulate this in the upload module, not in the component.
+- **Never fabricate a percentage.** While a real byte count is unavailable, use the indeterminate `Progress` variant (`aria-valuenow` omitted). A determinate bar is allowed only when the transport reports bytes.
 - Processing status is server-driven; poll only when an endpoint exists, with backoff and a stop condition.
 - Errors: show a safe message and keep the file available for retry.
-- Do not allow duplicate submits for the same file while in progress.
+- Do not allow duplicate submits for the same file while in progress; compare normalized name + size against both the queue and the existing list.
 - Do not preview file contents; show metadata only.
 - After success, invalidate the document list query; do not optimistically mark "ready".
 - Accessible: `aria-live` for status changes; drag-and-drop is an enhancement, not the only method.
+
+### 9.1 Document list and details (implemented as preview)
+
+- Query state lives in the URL (`q`, `status`, `type`, `sort`, `page`, `size`) with defaults omitted, so reload, shared links, and back/forward restore the same view. Reset `page` to 1 whenever a filter, sort, or size changes.
+- Desktop uses a labelled grid (`md+` with column headers); below `md` each row becomes a stacked card. Logical properties only, so the same markup mirrors in RTL.
+- Status is always **icon plus text**, never color alone. Six statuses share one badge component with tone-mapped tokens.
+- Filenames render `dir="ltr"` inside the page direction and are middle-truncated in lists so long names keep their extension.
+- Row actions: view details, delete (confirmation dialog), and a **disabled** retry that explains why it is unavailable. Destructive actions never fire directly.
+- Touch targets are at least 44 px at the smallest breakpoint; numeric columns use `tabular-nums`.
+- Details show only data that exists: metadata, status, and — only when a value is present — progress. When progress is absent, say so explicitly instead of drawing an empty bar.
+- Empty (no documents) points at the upload area; empty after filtering offers "clear filters"; loading renders skeleton rows; error preserves the shell and offers retry.
+- A document added while a filter is active may not appear in the filtered list; announce the addition rather than silently clearing the user's filters.
 
 ---
 
 ## 10. Data Source Interface
 
-- List of sources with name, type, status, and last checked time (when provided).
-- Source detail: connection metadata (never secrets), schema browser, table list, column details (name, type, nullability).
-- Schema tree is keyboard navigable; expand/collapse with arrow keys.
-- Permissions are read-only unless a backend endpoint explicitly supports editing.
-- Never display passwords or connection strings; mask anything secret-like.
-- Source selection for a conversation uses a combobox with search, disabled state while loading, and a clear empty state.
-- If schema browsing is unavailable, do not fabricate tables or example schemas in production.
+Implemented as a preview on 2026-11-17 (AD-18) across `/data-sources`, `/data-sources/new`, `/data-sources/:sourceId`, and `/data-sources/:sourceId/edit`:
+
+- List rows show name, source type (`SQL Server` with a preview marker because no type registry exists), status badge, last sync (`formatDateTime` or «هرگز»), and view/edit/delete actions. Desktop uses a labelled grid; below `md` the rows stack into cards.
+- Status is never color-only: `CircleCheck`/success, `Unplug`/warning, `CircleAlert`/destructive, always with text.
+- The add/edit form uses React Hook Form + Zod with inline errors, `aria-invalid`, `aria-describedby`, and a password show/hide toggle. The password field is always empty after save and the value never appears in the store, DOM, URL, logs, or storage.
+- Details show metadata, connection fields with hosts/ids forced `dir="ltr"`, and the credential as «ثبت شده — هرگز نمایش داده نمی‌شود». Passwords, connection strings, and secrets are never rendered.
+- The schema browser is a `role="tree"` with `treeitem`/`group`, `aria-expanded`, roving tabindex, ArrowUp/Down between visible items, ArrowRight expand-or-first-child, ArrowLeft collapse-or-parent, Home/End, and Enter toggling. Columns show name, data type, and nullability. Empty schema renders an explicit "no example schema" state.
+- Example schema data and last-sync/status values are labelled preview data. The connection-test control is permanently disabled with a visible reason because no test endpoint exists.
+- If schema browsing is unavailable, do not fabricate tables or example schemas in production; the preview data disappears with its mock module.
 
 ---
 
 ## 11. Settings Interface
 
-- Sections: حساب کاربری, مدل هوش مصنوعی, تنظیمات بازیابی, تعبیه (Embedding), ترجیحات.
-- Group related fields in cards with a short description.
-- Save behavior: explicit save button per section, dirty-state indication, and a leave-page warning when unsaved changes exist.
-- Client-only preferences (theme, density, language) save immediately.
-- Server-side settings must come from a documented endpoint; until one exists, render a clearly disabled "not available yet" state rather than fake inputs.
-- Never display API keys or model secrets. If the backend returns a masked value, show the mask only.
-- Destructive settings require confirmation and explain the impact.
+Implemented as a preview on 2026-11-17 (AD-19) at `/settings` and `/settings/:section`:
+
+- Sections: عمومی (`/settings`), ظاهر (`appearance`), مدل هوش مصنوعی (`ai`), تعبیه (`embedding`), بازیابی (`retrieval`). Section links use `NavLink` with `aria-current="page"`; the nav is vertical on `md+` and a horizontally scrollable tab strip at 360 px.
+- Group related fields in one card with a short description. Each server-backed section carries a preview badge and/or notice.
+- Appearance is the only section that truly persists: theme and language save immediately through the existing providers (`localStorage`), and the section says so explicitly.
+- General is read-only: signed-in user, app name, API base, and environment come from the session and build, not from a settings API.
+- AI and Retrieval expose explicit save/reset buttons that write to an in-memory draft store only. The status line says the values were saved for this session and the server configuration is unchanged; reset restores the source-verified defaults.
+- The AI provider select is disabled with a single Ollama option and an explanation that no provider abstraction exists. Similarity threshold is shown disabled and labelled unsupported.
+- Embedding shows «مدیریت‌شده در سرور — قابل نمایش نیست» rows and an explanation that paths and keys are server-only. No values, inputs, or secrets are rendered.
+- Server-side settings must come from a documented endpoint; until one exists, sections stay clearly labelled previews rather than implying fake persistence.
+- Destructive settings require confirmation and explain the impact. There are none in the current preview.
 
 ---
 

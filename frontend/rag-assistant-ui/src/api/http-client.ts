@@ -8,7 +8,7 @@ import { env } from '@/lib/env';
 const DEFAULT_TIMEOUT_MS = 15_000;
 const REFRESH_PATH = '/api/auth/refresh';
 
-export type HttpMethod = 'GET' | 'POST' | 'DELETE';
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
 export interface RequestOptions {
   method?: HttpMethod;
@@ -28,6 +28,8 @@ function buildUrl(path: string): string {
   const base = env.apiBaseUrl.replace(/\/+$/, '');
   return `${base}${path}`;
 }
+
+export { buildUrl };
 
 function isApiEnvelope(value: unknown): value is ApiResponse<unknown> {
   if (typeof value !== 'object' || value === null) {
@@ -144,7 +146,8 @@ async function execute<T>(
   }
 
   const headers: Record<string, string> = { Accept: 'application/json' };
-  if (body !== undefined) {
+  const isFormData = body instanceof FormData;
+  if (body !== undefined && !isFormData) {
     headers['Content-Type'] = 'application/json';
   }
   if (token) {
@@ -153,7 +156,7 @@ async function execute<T>(
 
   const init: RequestInit = { method, headers };
   if (body !== undefined) {
-    init.body = JSON.stringify(body);
+    init.body = isFormData ? body : JSON.stringify(body);
   }
 
   const response = await fetchWithTimeout(buildUrl(path), init, signal, timeoutMs);

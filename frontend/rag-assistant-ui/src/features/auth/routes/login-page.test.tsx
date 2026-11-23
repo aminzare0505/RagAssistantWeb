@@ -116,6 +116,25 @@ describe('login page', () => {
     expect(router.state.location.pathname).toBe('/');
   });
 
+  it('offers a development preview sign-in that sends no request', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const { router } = renderApp({
+      authenticated: false,
+      initialPath: '/login?returnTo=%2Fsettings',
+    });
+
+    await user.click(await screen.findByRole('button', { name: fa.auth.previewSignIn }));
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: fa.nav.settings }),
+    ).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/settings');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem('refresh_token')).toBeNull();
+  });
+
   it('toggles password visibility', async () => {
     const user = userEvent.setup();
     renderApp({ authenticated: false, initialPath: '/login' });

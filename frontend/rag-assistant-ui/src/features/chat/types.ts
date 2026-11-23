@@ -1,16 +1,16 @@
 /**
- * Preview-only view models for the chat UI.
+ * View models for the chat UI.
  *
- * These are NOT backend wire DTOs. The backend chat contract is blocked
- * (`ChatController` is uncommitted and unverified), so nothing here maps to an
- * endpoint. Replace this module with API-backed types when a contract exists.
+ * These mirror the backend wire DTOs (see src/api/types/chat.ts). Numeric
+ * backend IDs are converted to strings for UI use. Nullable fields stay
+ * nullable; the UI renders fallback text where needed.
  */
 
 export type ChatRole = 'user' | 'assistant';
 
 export interface ChatSource {
   id: string;
-  documentName: string;
+  documentName: string | null;
   page: number | null;
   score: number | null;
   snippet: string | null;
@@ -26,7 +26,7 @@ export interface ChatMessage {
 
 export interface ChatConversation {
   id: string;
-  title: string;
+  title: string | null;
   updatedAt: string;
   messages: ChatMessage[];
 }

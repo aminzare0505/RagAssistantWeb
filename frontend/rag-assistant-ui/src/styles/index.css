@@ -307,7 +307,26 @@
   }
 }
 
+@keyframes progress-sweep {
+  from {
+    inset-inline-start: 0%;
+    width: 30%;
+  }
+  50% {
+    inset-inline-start: 40%;
+    width: 40%;
+  }
+  to {
+    inset-inline-start: 100%;
+    width: 30%;
+  }
+}
+
 @layer utilities {
+  .progress-indeterminate {
+    animation: progress-sweep 1.4s ease-in-out infinite;
+  }
+
   .dialog-overlay[data-state='open'] {
     animation: overlay-in 150ms ease-out;
   }

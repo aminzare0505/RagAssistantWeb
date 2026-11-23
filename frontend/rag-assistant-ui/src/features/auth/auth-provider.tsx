@@ -9,6 +9,11 @@ import type { AuthUser } from '@/auth/types';
 
 import { login as loginRequest, logout as logoutRequest } from './auth-api';
 import { AuthContext } from './auth-context';
+import {
+  clearPreviewAdminSession,
+  readPreviewAdminSession,
+  startPreviewAdminSession,
+} from './preview/preview-admin-session';
 import type { AuthContextValue, AuthStatus, Credentials, SessionEndedReason } from './types';
 
 interface AuthProviderProps {
@@ -18,15 +23,16 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   // A token left in memory (for example after an in-app remount) is already a
   // valid session; a real page load starts with no access token and restores.
+  // The development preview session is a local marker with no token at all.
   const [status, setStatus] = useState<AuthStatus>(() => {
-    if (getAccessToken()) {
+    if (getAccessToken() || readPreviewAdminSession()) {
       return 'authenticated';
     }
     return getRefreshToken() ? 'restoring' : 'anonymous';
   });
   const [user, setUser] = useState<AuthUser | null>(() => {
     const token = getAccessToken();
-    return token ? decodeAccessToken(token) : null;
+    return token ? decodeAccessToken(token) : readPreviewAdminSession();
   });
   const [sessionEndedReason, setSessionEndedReason] = useState<SessionEndedReason>(null);
   const queryClient = useQueryClient();
@@ -61,6 +67,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     () =>
       subscribeToSessionExpired(() => {
         clearTokens();
+        clearPreviewAdminSession();
         queryClient.clear();
         setUser(null);
         setStatus('anonymous');
@@ -86,6 +93,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const refreshToken = getRefreshToken();
 
     clearTokens();
+    clearPreviewAdminSession();
     queryClient.clear();
     setUser(null);
     setSessionEndedReason(null);
@@ -97,9 +105,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [queryClient]);
 
+  const previewLogin = useCallback(() => {
+    queryClient.clear();
+    clearTokens();
+    setUser(startPreviewAdminSession());
+    setSessionEndedReason(null);
+    setStatus('authenticated');
+  }, [queryClient]);
+
   const value = useMemo<AuthContextValue>(
-    () => ({ status, user, sessionEndedReason, login, logout }),
-    [status, user, sessionEndedReason, login, logout],
+    () => ({
+      status,
+      user,
+      sessionEndedReason,
+      login,
+      logout,
+      ...(import.meta.env.DEV ? { previewLogin } : {}),
+    }),
+    [status, user, sessionEndedReason, login, logout, previewLogin],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

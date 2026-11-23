@@ -4,7 +4,7 @@ import { createAccessToken, TEST_USER } from '@/test/auth';
 
 import { decodeAccessToken } from './jwt';
 
-const EMPTY_USER = { id: null, username: null, email: null };
+const EMPTY_USER = { id: null, username: null, email: null, roles: [] };
 
 describe('access token decoding', () => {
   it('reads the display claims from the payload', () => {
@@ -16,7 +16,18 @@ describe('access token decoding', () => {
       decodeAccessToken(
         createAccessToken({ UserId: 42, preferred_username: ['admin', 'other'], useremail: null }),
       ),
-    ).toEqual({ id: null, username: 'admin', email: null });
+    ).toEqual({ id: null, username: 'admin', email: null, roles: [] });
+  });
+
+  it('reads role claims from the payload', () => {
+    expect(
+      decodeAccessToken(
+        createAccessToken({
+          role: ['Admin', 'Editor'],
+          'http://schemas.microsoft.com/ws/2008/06/identity/claims/role': 'Owner',
+        }),
+      ).roles,
+    ).toEqual(['Admin', 'Editor', 'Owner']);
   });
 
   it('returns an empty identity for an unreadable token', () => {

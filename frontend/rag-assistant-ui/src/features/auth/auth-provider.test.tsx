@@ -6,22 +6,32 @@ import { describe, expect, it, vi } from 'vitest';
 import { emitSessionExpired } from '@/auth/session-events';
 import { getAccessToken, getRefreshToken } from '@/auth/token-store';
 import { apiEnvelope, apiFailure, jsonResponse, type FetchMock } from '@/test/api';
-import { createTokenResult, seedRefreshToken, seedSession } from '@/test/auth';
+import { createAccessToken, createTokenResult, seedRefreshToken, seedSession } from '@/test/auth';
 
 import { AuthProvider } from './auth-provider';
+import {
+  PREVIEW_ADMIN_SESSION_KEY,
+  startPreviewAdminSession,
+} from './preview/preview-admin-session';
 import { useAuth } from './use-auth';
 
 function AuthProbe() {
-  const { status, user, sessionEndedReason, logout } = useAuth();
+  const { status, user, sessionEndedReason, logout, previewLogin } = useAuth();
 
   return (
     <div>
       <span data-testid="status">{status}</span>
       <span data-testid="username">{user?.username ?? 'none'}</span>
+      <span data-testid="roles">{user?.roles.join(',') ?? 'none'}</span>
       <span data-testid="reason">{sessionEndedReason ?? 'none'}</span>
       <button type="button" onClick={logout}>
         log out
       </button>
+      {previewLogin ? (
+        <button type="button" onClick={previewLogin}>
+          preview sign in
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -108,5 +118,65 @@ describe('auth provider', () => {
       '/api/auth/logout',
       expect.objectContaining({ method: 'POST' }),
     );
+  });
+
+  it('decodes role claims from the access token', async () => {
+    seedRefreshToken();
+    const fetchMock = vi.fn<FetchMock>();
+    fetchMock.mockResolvedValue(
+      jsonResponse(
+        apiEnvelope(
+          createTokenResult({
+            accessToken: createAccessToken({ role: ['Admin', 'Editor'] }),
+          }),
+        ),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderProvider();
+
+    expect(await screen.findByText('authenticated')).toBeInTheDocument();
+    expect(screen.getByTestId('roles')).toHaveTextContent('Admin,Editor');
+  });
+
+  it('signs in the development preview admin without a request', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn<FetchMock>();
+    vi.stubGlobal('fetch', fetchMock);
+    renderProvider();
+
+    await user.click(screen.getByRole('button', { name: 'preview sign in' }));
+
+    expect(screen.getByTestId('status')).toHaveTextContent('authenticated');
+    expect(screen.getByTestId('username')).toHaveTextContent('admin');
+    expect(screen.getByTestId('roles')).toHaveTextContent('Admin');
+    expect(sessionStorage.getItem(PREVIEW_ADMIN_SESSION_KEY)).toBe('1');
+    expect(getAccessToken()).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('restores the development preview session after a remount', () => {
+    startPreviewAdminSession();
+    const fetchMock = vi.fn<FetchMock>();
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderProvider();
+
+    expect(screen.getByTestId('status')).toHaveTextContent('authenticated');
+    expect(screen.getByTestId('username')).toHaveTextContent('admin');
+    expect(screen.getByTestId('roles')).toHaveTextContent('Admin');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('clears the development preview session on logout', async () => {
+    const user = userEvent.setup();
+    startPreviewAdminSession();
+    renderProvider();
+
+    await user.click(screen.getByRole('button', { name: 'log out' }));
+
+    expect(screen.getByTestId('status')).toHaveTextContent('anonymous');
+    expect(sessionStorage.getItem(PREVIEW_ADMIN_SESSION_KEY)).toBeNull();
   });
 });
