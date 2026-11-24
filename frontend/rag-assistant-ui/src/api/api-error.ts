@@ -6,6 +6,7 @@ export type ApiErrorKind =
   | 'forbidden'
   | 'not-found'
   | 'validation'
+  | 'conflict'
   | 'server'
   | 'contract';
 

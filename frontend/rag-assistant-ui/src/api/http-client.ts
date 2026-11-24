@@ -48,28 +48,55 @@ function extractErrors(value: unknown): string[] {
     : [];
 }
 
+/**
+ * The envelope's `message` is safe server copy (never a stack trace or HTML).
+ * It is used as the error message so callers can surface the backend's own
+ * validation/conflict text instead of a generic label.
+ */
+function extractMessage(value: unknown): string | null {
+  if (typeof value !== 'object' || value === null) {
+    return null;
+  }
+  const message = (value as { message?: unknown }).message;
+  return typeof message === 'string' && message.trim().length > 0 ? message.trim() : null;
+}
+
 function errorForStatus(status: number, payload: unknown): ApiError {
   const errors = extractErrors(payload);
+  const message = extractMessage(payload);
 
   if (status === 401) {
-    return new ApiError('unauthorized', 'Request is not authorized', { httpStatus: status });
+    return new ApiError('unauthorized', message ?? 'Request is not authorized', {
+      httpStatus: status,
+    });
   }
   if (status === 403) {
-    return new ApiError('forbidden', 'Request is forbidden', { httpStatus: status });
+    return new ApiError('forbidden', message ?? 'Request is forbidden', { httpStatus: status });
   }
   if (status === 404) {
-    return new ApiError('not-found', 'Resource was not found', { httpStatus: status });
+    return new ApiError('not-found', message ?? 'Resource was not found', { httpStatus: status });
   }
   if (status === 400 || status === 422) {
-    return new ApiError('validation', 'Request failed validation', {
+    return new ApiError('validation', message ?? 'Request failed validation', {
+      httpStatus: status,
+      errors,
+    });
+  }
+  if (status === 409) {
+    return new ApiError('conflict', message ?? 'The request conflicts with the current state', {
       httpStatus: status,
       errors,
     });
   }
   if (status >= 500) {
-    return new ApiError('server', 'Server request failed', { httpStatus: status, retryable: true });
+    return new ApiError('server', message ?? 'Server request failed', {
+      httpStatus: status,
+      retryable: true,
+    });
   }
-  return new ApiError('contract', `Unexpected HTTP status ${status}`, { httpStatus: status });
+  return new ApiError('contract', message ?? `Unexpected HTTP status ${status}`, {
+    httpStatus: status,
+  });
 }
 
 async function readJson(response: Response): Promise<unknown> {
@@ -191,10 +218,149 @@ async function execute<T>(
     return payload.value as T;
   }
 
-  throw new ApiError(envelopeFailureKind, 'The request was not successful', {
+  throw new ApiError(envelopeFailureKind, extractMessage(payload) ?? 'The request was not successful', {
     httpStatus: response.status,
     errors: extractErrors(payload),
   });
+}
+
+/**
+ * Streaming requests (Server-Sent Events) reuse the same auth and error
+ * handling as `request`, but the abort controller must stay alive while the
+ * body is read. `consume` owns the response body and is always called with a
+ * live signal.
+ */
+export interface StreamRequestOptions {
+  method?: HttpMethod;
+  body?: unknown;
+  signal?: AbortSignal;
+  /** The backend's own model call is bounded at 10 minutes. */
+  timeoutMs?: number;
+}
+
+const STREAM_TIMEOUT_MS = 10 * 60_000;
+
+interface StreamFetch {
+  response: Response;
+  cleanup: () => void;
+}
+
+async function fetchForStream(
+  url: string,
+  init: RequestInit,
+  signal: AbortSignal | undefined,
+  timeoutMs: number,
+): Promise<StreamFetch> {
+  const controller = new AbortController();
+  let didTimeout = false;
+  let cleaned = false;
+
+  const timeoutId = setTimeout(() => {
+    didTimeout = true;
+    controller.abort();
+  }, timeoutMs);
+
+  const handleAbort = () => controller.abort();
+
+  if (signal) {
+    if (signal.aborted) {
+      controller.abort();
+    } else {
+      signal.addEventListener('abort', handleAbort, { once: true });
+    }
+  }
+
+  const cleanup = () => {
+    if (cleaned) {
+      return;
+    }
+    cleaned = true;
+    clearTimeout(timeoutId);
+    signal?.removeEventListener('abort', handleAbort);
+  };
+
+  try {
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    return { response, cleanup };
+  } catch {
+    cleanup();
+    if (signal?.aborted) {
+      throw new ApiError('aborted', 'Request was aborted');
+    }
+    if (didTimeout) {
+      throw new ApiError('timeout', 'Request timed out');
+    }
+    throw new ApiError('network', 'Network request failed');
+  }
+}
+
+export async function requestStream(
+  path: string,
+  options: StreamRequestOptions,
+  consume: (response: Response) => Promise<void>,
+): Promise<void> {
+  return executeStream(path, options, consume, false);
+}
+
+async function executeStream(
+  path: string,
+  options: StreamRequestOptions,
+  consume: (response: Response) => Promise<void>,
+  hasRetried: boolean,
+): Promise<void> {
+  const { method = 'POST', body, signal, timeoutMs = STREAM_TIMEOUT_MS } = options;
+
+  const token = getAccessToken();
+  if (!token) {
+    throw new ApiError('unauthorized', 'Authentication is required');
+  }
+
+  const headers: Record<string, string> = {
+    Accept: 'text/event-stream',
+    Authorization: `Bearer ${token}`,
+  };
+  if (body !== undefined) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  const init: RequestInit = { method, headers };
+  if (body !== undefined) {
+    init.body = JSON.stringify(body);
+  }
+
+  const { response, cleanup } = await fetchForStream(
+    buildUrl(path),
+    init,
+    signal,
+    timeoutMs,
+  );
+
+  try {
+    if (response.status === 401 && !hasRetried) {
+      cleanup();
+      const currentToken = getAccessToken();
+      if (currentToken && currentToken !== token) {
+        // Another request already refreshed the session.
+        await executeStream(path, options, consume, true);
+        return;
+      }
+      await refreshAccessToken();
+      await executeStream(path, options, consume, true);
+      return;
+    }
+
+    if (!response.ok) {
+      throw errorForStatus(response.status, await readJson(response));
+    }
+
+    if (!response.body) {
+      throw new ApiError('contract', 'Streaming response has no body');
+    }
+
+    await consume(response);
+  } finally {
+    cleanup();
+  }
 }
 
 let refreshInFlight: Promise<JwtTokenResult> | null = null;
